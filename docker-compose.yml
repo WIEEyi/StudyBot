@@ -1,0 +1,116 @@
+# StudyBot 开发环境
+# 启动命令: docker-compose up -d
+# 停止命令: docker-compose down
+# 查看日志: docker-compose logs -f [服务名]
+
+services:
+  # ============================================================
+  # PostgreSQL 16 + pgvector 扩展
+  # 端口: 5432
+  # ============================================================
+  postgres:
+    image: pgvector/pgvector:pg16  # 官方 pgvector 镜像（内置 PostgreSQL 16）
+    container_name: studybot-postgres
+    environment:
+      POSTGRES_USER: studybot       # 数据库用户名
+      POSTGRES_PASSWORD: studybot123 # 数据库密码（开发环境用简单的）
+      POSTGRES_DB: studybot         # 默认创建的数据库名
+    ports:
+      - "5432:5432"                 # 宿主机:容器
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # 数据持久化，容器删了数据不丢
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studybot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================
+  # Redis 7
+  # 用途: 缓存 + Celery Result Backend + 实时 Pub/Sub
+  # 端口: 6379
+  # ============================================================
+  redis:
+    image: redis:7-alpine          # Alpine 版镜像更小（~30MB）
+    container_name: studybot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data            # 持久化 RDB/AOF 数据
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================
+  # RabbitMQ 3.12 (带管理界面)
+  # 用途: Celery Broker，承载 IO 密集型异步任务
+  # AMQP 端口: 5672
+  # 管理界面: 15672 (浏览器访问 http://localhost:15672)
+  # 默认账号: guest / guest
+  # ============================================================
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: studybot-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"                 # AMQP 协议（后端连接用）
+      - "15672:15672"              # HTTP 管理界面（浏览器看队列状态）
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================
+  # FastAPI 后端
+  # 端口: 8000
+  # 代码通过 bind mount 挂入，改代码后 uvicorn --reload 自动重启
+  # ============================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studybot-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app          # 代码 bind mount：宿主机改代码 → 容器内立刻生效
+    environment:
+      - APP_NAME=StudyBot
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - DATABASE_URL=postgresql+asyncpg://studybot:studybot123@postgres:5432/studybot
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=pyamqp://guest:guest@rabbitmq:5672//
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - CORS_ORIGINS=["http://localhost:3000"]
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ============================================================
+# 命名数据卷（Docker 管理，不手动指定路径）
+# ============================================================
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:

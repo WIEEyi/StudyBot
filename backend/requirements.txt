@@ -1,0 +1,53 @@
+# ============================================================
+# StudyBot 后端依赖
+# 安装: pip install -r requirements.txt
+# ============================================================
+
+# --- Web 框架 ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# --- 数据库 ---
+sqlalchemy[asyncio]==2.0.35       # ORM + 异步支持
+asyncpg==0.29.0                    # PostgreSQL 异步驱动
+alembic==1.13.2                    # 数据库迁移工具
+psycopg2-binary==2.9.9             # pgvector 需要（alembic 用）
+
+# --- 认证 ---
+python-jose[cryptography]==3.3.0   # JWT 编解码
+bcrypt==4.2.1                       # 密码哈希
+passlib[bcrypt]==1.7.4             # 保留作为备份
+python-multipart==0.0.12           # 表单/文件上传支持
+
+# --- 缓存 ---
+redis==5.1.1                       # Redis 客户端（含异步支持）
+hiredis==2.3.2                     # Redis 高性能解析器
+
+# --- 数据校验 ---
+pydantic[email]==2.9.2             # 请求/响应模型校验
+pydantic-settings==2.5.2           # 环境变量管理
+
+# --- AI / LangChain ---
+langchain==0.3.7
+langchain-openai==0.2.6
+langgraph==0.2.45
+langchain-community==0.3.5
+tiktoken==0.7.0                    # OpenAI token 计算
+
+# --- 文档处理 (RAG) ---
+pypdf2==3.0.1                      # PDF 文本提取
+markdown-it-py==3.0.0              # Markdown 解析
+
+# --- 任务队列 ---
+celery==5.4.0                      # 异步任务队列
+
+# --- HTTP 客户端 ---
+httpx==0.27.2                      # 异步 HTTP 客户端
+websockets==13.1                   # WebSocket 支持
+
+# --- 工具 ---
+python-dotenv==1.0.1               # 加载 .env 文件
+
+# --- 测试 ---
+pytest==8.3.3                      # 测试框架
+pytest-asyncio==0.24.0             # 异步测试支持
