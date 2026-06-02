@@ -551,7 +551,7 @@ Access Token expires in 30 minutes. Use `/api/v1/auth/refresh` to renew.
 
 ---
 
-### 3.1 PlannerAgent — AI Learning Plan Generation (Step 8)
+### 3.1 PlannerAgent — AI Learning Plan Generation (Step 8) 🔄
 
 #### WS /api/v1/ws/plan — WebSocket Plan Generation
 
@@ -562,30 +562,54 @@ Access Token expires in 30 minutes. Use `/api/v1/auth/refresh` to renew.
 ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 ```
 
-**Client Sends** (trigger generation):
-```json
-{
-  "action": "generate_plan",
-  "goal_id": 1
-}
+**Authentication**: JWT access_token passed via query param `token`. Token validity and user status are verified during connection handshake.
+
+**Client → Server Messages**:
+
+| action | Description | Request Body |
+|--------|-------------|-------------|
+| `generate_plan` | Trigger plan generation | `{"action": "generate_plan", "goal_id": 1}` |
+
+**Server → Client Event Stream**:
+
+| Event | Description | Data Format |
+|-------|-------------|-------------|
+| `thinking` | Agent starts analyzing goal | `{"event": "thinking", "message": "Analyzing learning goal 'xxx'..."}` |
+| `milestone` | A milestone is generated | `{"event": "milestone", "data": {"title": "Phase 1: Python Basics", "order": 1}}` |
+| `task` | A task is generated | `{"event": "task", "data": {"title": "Install Python", "priority": "high", "estimated_minutes": 30, "milestone": "Phase 1: Python Basics"}}` |
+| `complete` | Plan generation complete | `{"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}` |
+| `error` | An error occurred | `{"event": "error", "message": "Generation failed: Invalid API key"}` |
+
+**Error Codes**:
+
+| Scenario | WebSocket Close Code | Message |
+|----------|---------------------|---------|
+| No token / invalid token | 4001 | "Authentication failed: invalid or missing token" |
+| User not found or disabled | 4001 | "Authentication failed: user not found or disabled" |
+| Invalid goal_id | 4002 (via error event) | "Goal not found: id=xxx" |
+| Goal not owned by user | 4003 (via error event) | "Forbidden: not your goal" |
+| LLM call failure | 4004 (via error event) | "AI generation failed: {details}" |
+| Invalid action | 4005 (via error event) | "Invalid action: {action}" |
+| Connection timeout (30s inactivity) | 4000 | "Connection timeout" |
+
+**Full Message Flow Example**:
 ```
+// 1. Client connects
+→ ws://localhost:8000/api/v1/ws/plan?token=eyJhbG...
 
-**Server Pushes Events**:
-```json
-// Analysis phase
-{"event": "thinking", "message": "Analyzing learning goal..."}
+// 2. Client triggers generation
+→ {"action": "generate_plan", "goal_id": 1}
 
-// Milestone generated
-{"event": "milestone", "data": {"title": "Phase 1: Python Basics", "order": 1}}
+// 3. Server streams events
+← {"event": "thinking", "message": "Analyzing learning goal 'Learn Python Full-Stack'..."}
+← {"event": "milestone", "data": {"title": "Phase 1: Python Basics", "order": 1}}
+← {"event": "task", "data": {"title": "Install Python", "priority": "high", "estimated_minutes": 30, "milestone": "Phase 1: Python Basics"}}
+← {"event": "task", "data": {"title": "Learn variables and data types", "priority": "high", "estimated_minutes": 60, "milestone": "Phase 1: Python Basics"}}
+← {"event": "milestone", "data": {"title": "Phase 2: Web Development Intro", "order": 2}}
+← {"event": "task", "data": {"title": "Learn HTTP basics", "priority": "medium", "estimated_minutes": 45, "milestone": "Phase 2: Web Development Intro"}}
+← {"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}
 
-// Task generated
-{"event": "task", "data": {"title": "Install Python environment", "priority": "high", "estimated_minutes": 30}}
-
-// Complete
-{"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}
-
-// Error
-{"event": "error", "message": "Generation failed: Invalid API key"}
+// 4. Connection closes
 ```
 
 ---

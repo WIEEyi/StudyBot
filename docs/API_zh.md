@@ -551,7 +551,7 @@ Access Token 有效期 30 分钟，过期后使用 `/api/v1/auth/refresh` 刷新
 
 ---
 
-### 3.1 PlannerAgent — AI 学习计划生成 (Step 8)
+### 3.1 PlannerAgent — AI 学习计划生成 (Step 8) 🔄
 
 #### WS /api/v1/ws/plan — WebSocket 学习计划生成
 
@@ -562,30 +562,54 @@ Access Token 有效期 30 分钟，过期后使用 `/api/v1/auth/refresh` 刷新
 ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 ```
 
-**客户端发送** (触发生成):
-```json
-{
-  "action": "generate_plan",
-  "goal_id": 1
-}
+**认证**: JWT access_token 通过 query param `token` 传入。连接建立时验证 token 有效性和用户状态。
+
+**客户端 → 服务端消息**:
+
+| action | 说明 | 请求体 |
+|--------|------|--------|
+| `generate_plan` | 触发生成学习计划 | `{"action": "generate_plan", "goal_id": 1}` |
+
+**服务端 → 客户端事件流**:
+
+| 事件 | 说明 | 数据格式 |
+|------|------|----------|
+| `thinking` | Agent 开始分析目标 | `{"event": "thinking", "message": "正在分析学习目标「xxx」..."}` |
+| `milestone` | 生成一个里程碑 | `{"event": "milestone", "data": {"title": "阶段一：Python 基础", "order": 1}}` |
+| `task` | 生成一个任务 | `{"event": "task", "data": {"title": "安装 Python 环境", "priority": "high", "estimated_minutes": 30, "milestone": "阶段一：Python 基础"}}` |
+| `complete` | 计划生成完成 | `{"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}` |
+| `error` | 发生错误 | `{"event": "error", "message": "生成失败：API 密钥无效"}` |
+
+**错误码**:
+
+| 场景 | WebSocket 关闭码 | 消息 |
+|------|-----------------|------|
+| 无 token / token 无效 | 4001 | "认证失败：请提供有效的 access token" |
+| 用户不存在或已禁用 | 4001 | "认证失败：用户不存在或已禁用" |
+| goal_id 无效 | 4002 (通过 error 事件) | "目标不存在: id=xxx" |
+| Goal 不属于当前用户 | 4003 (通过 error 事件) | "无权操作此目标" |
+| LLM 调用失败 | 4004 (通过 error 事件) | "AI 生成失败：{错误详情}" |
+| 无效 action | 4005 (通过 error 事件) | "无效的操作: {action}" |
+| 连接超时 (30s 无消息) | 4000 | "连接超时" |
+
+**完整消息流程示例**:
 ```
+// 1. 客户端建立连接
+→ ws://localhost:8000/api/v1/ws/plan?token=eyJhbG...
 
-**服务端推送事件**:
-```json
-// 分析阶段
-{"event": "thinking", "message": "正在分析学习目标..."}
+// 2. 客户端触发生成
+→ {"action": "generate_plan", "goal_id": 1}
 
-// 里程碑生成
-{"event": "milestone", "data": {"title": "阶段一：Python 基础", "order": 1}}
+// 3. 服务端流式推送
+← {"event": "thinking", "message": "正在分析学习目标「学习 Python 全栈开发」..."}
+← {"event": "milestone", "data": {"title": "阶段一：Python 基础", "order": 1}}
+← {"event": "task", "data": {"title": "安装 Python 环境", "priority": "high", "estimated_minutes": 30, "milestone": "阶段一：Python 基础"}}
+← {"event": "task", "data": {"title": "学习变量和数据类型", "priority": "high", "estimated_minutes": 60, "milestone": "阶段一：Python 基础"}}
+← {"event": "milestone", "data": {"title": "阶段二：Web 开发入门", "order": 2}}
+← {"event": "task", "data": {"title": "学习 HTTP 协议基础", "priority": "medium", "estimated_minutes": 45, "milestone": "阶段二：Web 开发入门"}}
+← {"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}
 
-// 任务生成
-{"event": "task", "data": {"title": "安装 Python 环境", "priority": "high", "estimated_minutes": 30}}
-
-// 完成
-{"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}
-
-// 错误
-{"event": "error", "message": "生成失败：API 密钥无效"}
+// 4. 连接关闭
 ```
 
 ---

@@ -16,6 +16,7 @@
 | Step 5 | [step_05_jwt_auth.md](task_logs/step_05_jwt_auth.md) | 2026-06-01 | ✅ |
 | Step 6 | [step_06_models_migration.md](task_logs/step_06_models_migration.md) | 2026-06-01 | ✅ |
 | Step 7 | [step_07_goals_tasks_crud.md](task_logs/step_07_goals_tasks_crud.md) | 2026-06-02 | ✅ |
+| Step 8 | [step_08_planner_websocket.md](task_logs/step_08_planner_websocket.md) | 2026-06-02 | ✅ |
 
 ---
 
@@ -29,7 +30,8 @@ task_logs/
 ├── step_04_logging.md
 ├── step_05_jwt_auth.md
 ├── step_06_models_migration.md
-└── step_07_goals_tasks_crud.md
+├── step_07_goals_tasks_crud.md
+└── step_08_planner_websocket.md
 ```
 
 格式: `step_{编号}_{简短英文描述}.md`
@@ -38,7 +40,25 @@ task_logs/
 
 ## 当前会话
 
-_无进行中会话（Step 7 已完成，等待开始 Step 8）_
+_无进行中会话（Step 8 已完成，等待开始 Step 9）_
+
+---
+
+## 2026-06-02 Step 8 会话结束
+
+**完成的工作**:
+- 开发流程完善: 创建 PRD/API 中英文文档 + GitHub 仓库初始化 + 分支策略
+- Step 8 全部实现: PlannerAgent (LangGraph 3 节点) + WebSocket 端点 (JWT 认证)
+- Task 模型加 milestone 字段 + Alembic 迁移
+- 单元测试 12 个用例（Agent 核心逻辑 + WebSocket 认证 + Schema 集成）
+- Docker 重建 + 迁移执行 + 全量 pytest 验证
+- Bug 修复: create_task 漏传 milestone 字段
+- 全量测试通过: 57/57 (Goals 21 + Tasks 24 + WS/Planner 12)
+
+**结束位置**: Step 8 全部完成 ✅，Step 9 (RAG Agent 知识库检索) 待开始
+**Docker 服务**: 全部 running（postgres + redis + rabbitmq + backend）
+**下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
+**下一步**: Step 9 — RAG Agent 知识库检索增强
 
 ---
 

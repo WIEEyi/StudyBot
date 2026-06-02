@@ -73,24 +73,52 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 
 ### 2.3 待开发功能详情
 
-#### 2.3.1 AI 学习计划生成 (Step 8 - 下一步)
+#### 2.3.1 AI 学习计划生成 (Step 8 - 进行中)
 
-**功能描述**: 用户创建一个学习目标后，调用 PlannerAgent（LangGraph），AI 自动将目标分解为结构化的学习计划。
+**功能描述**: 用户创建一个学习目标后，通过 WebSocket 连接触发 PlannerAgent（LangGraph），AI 自动将目标分解为结构化的学习计划（里程碑 + 任务），并通过 WebSocket 实时推送生成进度。
+
+**技术实现**:
+- **Agent 框架**: LangGraph StateGraph（3 节点工作流）
+- **LLM**: ChatOpenAI（model=gpt-4o），使用 structured output 确保返回格式
+- **实时通信**: FastAPI WebSocket，JWT Token 认证
+
+**Agent 工作流**:
+```
+START → analyze_goal（分析目标）→ generate_plan（LLM 生成计划）→ save_plan（批量入库）→ END
+```
+每个节点执行时通过 WebSocket 推送进度事件。
 
 **输入**:
-- 目标 ID（已有 Goal）
-- 用户的偏好设置（可选：每日学习时长、截止日期）
+- `goal_id`: 已有学习目标的 ID
+- JWT access_token（WebSocket 连接时通过 query param 传入）
 
 **处理流程**:
-1. 分析目标范围和学习路径
-2. 生成里程碑（阶段性目标）
-3. 为每个里程碑生成具体任务
-4. 为任务分配优先级和预估时间
-5. 通过 WebSocket 实时推送生成进度
+1. **分析阶段** (`analyze_goal`): 从数据库加载目标信息，构造 LLM 上下文
+2. **生成阶段** (`generate_plan`): LLM 分析目标，拆解为 3-5 个里程碑，每个里程碑下生成 3-8 个具体任务，为每个任务分配优先级和预估耗时
+3. **保存阶段** (`save_plan`): 批量 INSERT 任务到数据库，关联到目标
+
+**WebSocket 事件流**:
+| 事件 | 触发时机 | 数据格式 |
+|------|----------|----------|
+| `thinking` | 开始分析 | `{"event": "thinking", "message": "正在分析..."}` |
+| `milestone` | 每生成一个里程碑 | `{"event": "milestone", "data": {"title": "阶段一", "order": 1}}` |
+| `task` | 每生成一个任务 | `{"event": "task", "data": {...task字段}}` |
+| `complete` | 全部完成 | `{"event": "complete", "data": {"total_tasks": N, "total_minutes": M}}` |
+| `error` | 发生错误 | `{"event": "error", "message": "错误描述"}` |
 
 **输出**:
-- 一系列 Task（任务），关联到该 Goal
-- 每个 Task 包含：标题、描述、优先级、预估耗时、截止日期、里程碑标记
+- 一系列 Task（任务）写入数据库，关联到该 Goal
+- 每个 Task 包含：标题、描述、优先级、预估耗时(分钟)、milestone(里程碑名称)
+
+**边界条件与错误处理**:
+- Goal 不存在 → 返回 `error` 事件
+- Goal 不属于当前用户 → 返回 `error` 事件
+- LLM API 调用失败 → 返回 `error` 事件，不保存部分结果
+- 无有效 OpenAI API Key → 返回 `error` 事件
+- WebSocket 连接超时(30s) → 自动关闭连接
+
+**数据库变更**:
+- Task 模型新增 `milestone` 字段（VARCHAR(100)，可空），用于按里程碑分组任务
 
 #### 2.3.2 知识库 RAG 问答 (Step 9+)
 
