@@ -84,6 +84,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app          # 代码 bind mount：宿主机改代码 → 容器内立刻生效
+      - uploads_data:/app/uploads  # 用户上传文件持久化
     environment:
       - APP_NAME=StudyBot
       - APP_ENV=development
@@ -114,3 +115,4 @@ volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  uploads_data:

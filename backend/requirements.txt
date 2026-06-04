@@ -37,6 +37,7 @@ tiktoken==0.7.0                    # OpenAI token 计算
 # --- 文档处理 (RAG) ---
 pypdf2==3.0.1                      # PDF 文本提取
 markdown-it-py==3.0.0              # Markdown 解析
+beautifulsoup4==4.12.3             # HTML 纯文本提取
 
 # --- 任务队列 ---
 celery==5.4.0                      # 异步任务队列
