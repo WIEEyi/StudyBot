@@ -17,7 +17,7 @@
 | Step 6 | [step_06_models_migration.md](task_logs/step_06_models_migration.md) | 2026-06-01 | ✅ |
 | Step 7 | [step_07_goals_tasks_crud.md](task_logs/step_07_goals_tasks_crud.md) | 2026-06-02 | ✅ |
 | Step 8 | [step_08_planner_websocket.md](task_logs/step_08_planner_websocket.md) | 2026-06-02 | ✅ |
-| Step 9 | [step_09_document_upload.md](task_logs/step_09_document_upload.md) | 2026-06-04 | 🔄 |
+| Step 9 | [step_09_document_upload.md](task_logs/step_09_document_upload.md) | 2026-06-04 | ✅ |
 
 ---
 
@@ -42,7 +42,7 @@ task_logs/
 
 ## 当前会话
 
-_Step 9 代码完成，待 Docker 验证_
+_Step 9 全部完成 ✅，79/79 测试通过，会话结束_
 
 ---
 
@@ -64,10 +64,22 @@ _Step 9 代码完成，待 Docker 验证_
 - ✅ TASK_LOG.md 索引更新
 
 **结束位置**: Step 9 代码全部完成 ✅，待启动 Docker 运行测试验证
-**Docker 服务**: 未启动
-**分支**: feature/step-09-document-upload（已推送）
+**Docker 服务**: 全部 running（postgres + redis + rabbitmq + backend）
+**测试结果**: 79/79 全部通过 ✅
+**分支**: feature/step-09-document-upload（已推送，最新 commit 待网络恢复后推送）
 **下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
-**下一步**: 启动 Docker → `docker compose build backend` → `docker compose up -d` → `docker compose exec backend pytest -v`（预期 80/80 全通过）
+**下一步**: Step 10 — 向量嵌入 (Text Chunking + OpenAI Embedding + pgvector)
+
+---
+
+## 会话结束 — 2026-06-04
+
+**恢复指令**: 
+```
+继续 StudyBot 项目。从 PROJECT_TRACKER.md 的「📋 下一步」开始 Step 10。
+Docker 服务应仍在运行（postgres + redis + rabbitmq + backend）。
+分支: feature/step-09-document-upload 待合并到 develop。
+```
 
 ---
 

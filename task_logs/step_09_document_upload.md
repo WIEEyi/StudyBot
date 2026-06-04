@@ -1,7 +1,7 @@
 # Step 9: 文档上传 + 文本提取 — 执行日志
 
 > **开始日期**: 2026-06-04
-> **状态**: 代码完成，待 Docker 验证
+> **状态**: ✅ 全部完成，79/79 测试通过 (2026-06-04)
 
 ---
 
@@ -122,6 +122,27 @@ curl http://localhost:8000/api/v1/documents/1 \
 curl -X DELETE http://localhost:8000/api/v1/documents/1 \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+---
+
+## Docker 验证 (2026-06-04)
+
+**环境**: Docker Desktop Windows, all services healthy
+
+**过程**:
+1. pip install beautifulsoup4 遇到 PyPI SSL 错误 → 切换清华镜像源解决
+2. Alembic migration 找不到 4e3d32cdf2c8 → 从 main 分支恢复 Step 8 迁移文件
+3. 恢复 Step 8 源码 (planner_agent, ws.py, task model/schema updates)
+4. backend 重启 → pytest 全量运行
+
+**测试结果**:
+```
+======================= 79 passed, 3 warnings in 28.11s ========================
+```
+- Documents: 22/22 ✅
+- Goals: 21/21 ✅
+- Tasks: 24/24 ✅
+- WS/Planner: 12/12 ✅
 
 ### 合并到 develop
 
