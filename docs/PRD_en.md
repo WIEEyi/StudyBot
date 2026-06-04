@@ -39,7 +39,7 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 | 1 | User Authentication (JWT) | ✅ Complete | P0 | Phase 1 |
 | 2 | Learning Goal Management (CRUD) | ✅ Complete | P0 | Phase 1 |
 | 3 | Task Management (CRUD) | ✅ Complete | P0 | Phase 1 |
-| 4 | AI Learning Plan Generation (PlannerAgent) | 🔄 In Progress | P0 | Phase 1 |
+| 4 | AI Learning Plan Generation (PlannerAgent) | ✅ Complete | P0 | Phase 1 |
 | 5 | Knowledge Base RAG Q&A (DigestAgent) | 📋 Planned | P1 | Phase 2 |
 | 6 | Spaced Repetition (SM-2 Algorithm) | 📋 Planned | P1 | Phase 2 |
 | 7 | Auto Quiz Generation (QuizAgent) | 📋 Planned | P2 | Phase 2 |
@@ -73,46 +73,125 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 
 ### 2.3 Planned Features Detail
 
-#### 2.3.1 AI Learning Plan Generation (Step 8 - Next)
+#### 2.3.1 AI Learning Plan Generation (Step 8 - Complete)
 
-**Description**: After creating a learning goal, invoke PlannerAgent (LangGraph) to automatically decompose the goal into a structured learning plan.
+**Description**: After creating a learning goal, users connect via WebSocket to trigger PlannerAgent (LangGraph), which automatically decomposes the goal into a structured learning plan (milestones + tasks) and streams progress in real-time via WebSocket.
+
+**Technical Implementation**:
+- **Agent Framework**: LangGraph StateGraph (3-node workflow)
+- **LLM**: ChatOpenAI (model=gpt-4o), structured output for guaranteed format
+- **Real-time Communication**: FastAPI WebSocket with JWT token authentication
+
+**Agent Workflow**:
+```
+START → analyze_goal → generate_plan (LLM) → save_plan (batch insert) → END
+```
+Each node pushes progress events via WebSocket during execution.
 
 **Input**:
-- Goal ID (existing Goal)
-- User preferences (optional: daily study time, deadline)
+- `goal_id`: ID of an existing learning goal
+- JWT access_token (passed as query param during WebSocket connection)
 
 **Processing Flow**:
-1. Analyze goal scope and learning path
-2. Generate milestones
-3. Generate specific tasks for each milestone
-4. Assign priority and time estimates to tasks
-5. Stream progress via WebSocket in real-time
+1. **Analysis Phase** (`analyze_goal`): Load goal info from DB, prepare LLM context
+2. **Generation Phase** (`generate_plan`): LLM analyzes goal, breaks into 3-5 milestones, generates 3-8 tasks per milestone, assigns priority and time estimates
+3. **Save Phase** (`save_plan`): Batch INSERT tasks into DB linked to the goal
+
+**WebSocket Event Stream**:
+| Event | Trigger | Data Format |
+|-------|---------|-------------|
+| `thinking` | Analysis starts | `{"event": "thinking", "message": "Analyzing..."}` |
+| `milestone` | Each milestone generated | `{"event": "milestone", "data": {"title": "Phase 1", "order": 1}}` |
+| `task` | Each task generated | `{"event": "task", "data": {...task fields}}` |
+| `complete` | All done | `{"event": "complete", "data": {"total_tasks": N, "total_minutes": M}}` |
+| `error` | Error occurred | `{"event": "error", "message": "Error description"}` |
 
 **Output**:
-- Series of Tasks linked to the Goal
-- Each Task includes: title, description, priority, estimated time, due date, milestone
+- Series of Tasks written to DB, linked to the Goal
+- Each Task includes: title, description, priority, estimated_minutes, milestone, due_date
 
-#### 2.3.2 Knowledge Base RAG Q&A (Step 9+)
+**Edge Cases & Error Handling**:
+- Goal not found → `error` event
+- Goal not owned by current user → `error` event
+- LLM API call failure → `error` event, no partial results saved
+- No valid OpenAI API key → `error` event
+- WebSocket connection timeout (30s) → auto close connection
 
-**Description**: Users upload learning documents (PDF/Markdown/TXT). System performs text chunking and vector embedding storage (pgvector), supporting semantic search and AI Q&A.
+**Database Change**:
+- Task model adds `milestone` field (VARCHAR(100), nullable) for grouping tasks by milestone
 
-#### 2.3.3 Spaced Repetition (Step 10+)
+#### 2.3.2 Document Upload + Text Extraction (Step 9 - In Progress)
+
+**Description**: Users upload learning documents (PDF/Markdown/TXT/HTML). The system automatically extracts text content and stores it in the database. This is the foundational prerequisite for text chunking, vector embedding, and RAG Q&A.
+
+**Technical Implementation**:
+- **File Upload**: FastAPI `UploadFile` + `File`, received via multipart/form-data
+- **Text Extraction**: PDF→PyPDF2, Markdown→markdown-it-py, HTML→BeautifulSoup4, TXT→direct read
+- **File Storage**: Local disk `/app/uploads/{user_id}/` (Docker named volume for persistence)
+- **Database**: Document model already exists (created in Step 6), includes title, file_path, content, file_type fields
+
+**Input**:
+- `file`: Uploaded file (max 50MB)
+- `title`: Document title (optional, defaults to filename)
+- JWT access_token (request header)
+
+**Processing Flow**:
+1. **Receive File**: Validate file type (only pdf/md/txt/html allowed), validate file size
+2. **Save File**: Save to disk at path `{user_id}/{uuid}.{ext}`
+3. **Text Extraction**: Call the appropriate extractor based on file type to get plain text
+4. **Store Record**: Write file path and extracted text to documents table
+
+**Output**:
+- Document record written to database, referencing original file and extracted text
+
+**Edge Cases & Error Handling**:
+- Unsupported file type → 422 error
+- File size exceeds 50MB → 413 error
+- Empty file (0 bytes) → 422 error
+- Text extraction failure (corrupted file) → 500 error, but file is saved (no data loss)
+- Duplicate filenames → Allowed (internal UUID naming, no conflicts)
+- Disk full → 500 error
+
+**Supported File Formats**:
+
+| Format | Extensions | Extraction Method | Library |
+|--------|-----------|-------------------|---------|
+| PDF | `.pdf` | PyPDF2 page-by-page extraction | pypdf2 (installed) |
+| Markdown | `.md` | Raw text preservation | markdown-it-py (installed) |
+| Plain Text | `.txt` | Direct read | None |
+| HTML | `.html`, `.htm` | BeautifulSoup4 plain text extraction | beautifulsoup4 (new) |
+
+**Database Change**: None (Document model already created in Step 6)
+
+#### 2.3.3 Vector Embedding + RAG Q&A (Step 10-11)
+
+**Description**: Perform text chunking and vector embedding storage (pgvector) on extracted document text, supporting semantic search and AI Q&A.
+
+**Input**: Document text + User question
+**Output**: AI-generated answer + Source references
+
+#### 2.3.4 Spaced Repetition (Step 12+)
 
 **Description**: Based on SM-2 algorithm, automatically calculate next review time from user feedback (forgetting degree).
 
-#### 2.3.4 Auto Quiz Generation (Step 11+)
+**Core Logic**:
+- User rates review cards (0-5)
+- SM-2 algorithm adjusts ease_factor, interval, repetitions
+- System automatically reminds due review cards
+
+#### 2.3.5 Auto Quiz Generation (Step 13+)
 
 **Description**: Based on user's learning materials, AI auto-generates quiz questions (multiple choice, true/false, short answer).
 
-#### 2.3.5 Knowledge Graph (Step 12+)
+#### 2.3.6 Knowledge Graph (Step 14+)
 
 **Description**: Visualize concepts and their relationships (prerequisite/related/part_of) as a knowledge graph.
 
-#### 2.3.6 Dynamic Schedule Adjustment (Step 13+)
+#### 2.3.7 Dynamic Schedule Adjustment (Step 15+)
 
 **Description**: Detect when learning progress falls behind, AI automatically reschedules tasks.
 
-#### 2.3.7 Learning Dashboard (Step 14+)
+#### 2.3.8 Learning Dashboard (Step 16+)
 
 **Description**: Visualize learning statistics — heatmap (daily study time), streak, completed task count, AI weekly insights.
 
@@ -346,7 +425,7 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | 5 | User Authentication | Register/Login/JWT | ✅ |
 | 6 | Data Models | All 8 ORM models + Alembic | ✅ |
 | 7 | Goals + Tasks CRUD | Full REST API for goals and tasks | ✅ |
-| 8 | PlannerAgent | AI learning plan generation + WebSocket | 🔄 Next |
+| 8 | PlannerAgent | AI learning plan generation + WebSocket | ✅ |
 
 ### Phase 2: Intelligent Learning Assistance
 

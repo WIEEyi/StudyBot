@@ -590,18 +590,165 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.2 知识库模块 (Step 9-11)
+### 3.2 文档模块 (Documents) — Step 9 🔄
+
+**支持的文档格式**: PDF (.pdf)、Markdown (.md)、纯文本 (.txt)、HTML (.html/.htm)
+
+---
 
 #### POST /api/v1/documents — 上传文档
-#### GET /api/v1/documents — 文档列表
-#### GET /api/v1/documents/{id} — 文档详情
-#### DELETE /api/v1/documents/{id} — 删除文档
-#### POST /api/v1/qa/ask — RAG 问答
-#### GET /api/v1/review-cards — 复习卡片列表
-#### POST /api/v1/review-cards — 创建复习卡片
-#### PATCH /api/v1/review-cards/{id}/review — 提交复习评分
-#### POST /api/v1/quizzes/generate — AI 自动出题
-#### GET /api/v1/quizzes — 测验列表
+
+**描述**: 上传一个学习文档。系统自动提取文本内容、保存原始文件、记录到数据库。
+
+**请求头**: `Authorization: Bearer <access_token>`
+**Content-Type**: `multipart/form-data`
+
+**请求体**:
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| file | file (binary) | 是 | - | 要上传的文件，最大 50MB |
+| title | string (1-255) | 否 | 文件名 | 文档标题，不传则取文件名 |
+
+**支持的文件类型**: `pdf`, `md`, `txt`, `html`, `htm`
+
+**成功响应** (201):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "title": "Python学习笔记",
+  "file_path": "/app/uploads/1/a1b2c3d4.pdf",
+  "file_type": "pdf",
+  "content": "第一章 Python基础...（提取后的纯文本）",
+  "created_at": "2026-06-04T10:00:00Z",
+  "updated_at": "2026-06-04T10:00:00Z"
+}
+```
+
+**字段说明**:
+
+| 字段 | 说明 |
+|------|------|
+| content | 提取后的文本内容，用于后续向量化和全文搜索 |
+
+**错误响应**:
+- `401` — 未认证
+- `422` — 文件类型不支持、文件为空（0 字节）、title 参数校验失败
+- `413` — 文件大小超过 50MB
+- `500` — 文件保存失败或文本提取失败
+
+**业务规则**:
+1. 文件按 `{user_id}/{uuid}.{ext}` 命名存储，同名文件不冲突
+2. 上传后立即触发文本提取，提取结果同步写入 content 字段
+3. 文本提取失败不影响文件保存（原始文件仍保留在磁盘上）
+4. 一次请求只能上传一个文件
+
+---
+
+#### GET /api/v1/documents — 获取文档列表（分页）
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| file_type | string | 否 | - | 过滤文件类型: `pdf`, `md`, `txt`, `html` |
+| offset | integer | 否 | 0 | 分页偏移量 |
+| limit | integer | 否 | 20 | 每页数量（最大 100） |
+
+**成功响应** (200):
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "title": "Python学习笔记",
+      "file_path": "/app/uploads/1/a1b2c3d4.pdf",
+      "file_type": "pdf",
+      "content": "第一章 Python基础...",
+      "created_at": "2026-06-04T10:00:00Z",
+      "updated_at": "2026-06-04T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+**注意**: 列表中的 `content` 字段会截断，仅返回前 200 个字符作为预览。完整内容需通过详情接口获取。
+
+**错误响应**:
+- `401` — 未认证
+- `422` — file_type 值无效
+
+---
+
+#### GET /api/v1/documents/{document_id} — 获取文档详情
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| document_id | integer | 文档 ID |
+
+**成功响应** (200):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "title": "Python学习笔记",
+  "file_path": "/app/uploads/1/a1b2c3d4.pdf",
+  "file_type": "pdf",
+  "content": "第一章 Python基础\n1.1 变量和数据类型\n...（完整提取文本内容）",
+  "created_at": "2026-06-04T10:00:00Z",
+  "updated_at": "2026-06-04T10:00:00Z"
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `403` — 文档不属于当前用户
+- `404` — 文档不存在
+
+---
+
+#### DELETE /api/v1/documents/{document_id} — 删除文档
+
+**描述**: 同时删除磁盘上的原始文件和数据库记录。此操作不可逆。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| document_id | integer | 文档 ID |
+
+**成功响应** (204): 无响应体
+
+**错误响应**:
+- `401` — 未认证
+- `403` — 文档不属于当前用户
+- `404` — 文档不存在
+
+**业务规则**:
+1. 数据库记录和磁盘文件同时删除（尽力而为：文件删除失败不影响数据库删除）
+2. 删除后 content 不可恢复
+
+---
+
+#### GET /api/v1/review-cards — 复习卡片列表（留作 Step 12）
+#### POST /api/v1/review-cards — 创建复习卡片（留作 Step 12）
+#### PATCH /api/v1/review-cards/{id}/review — 提交复习评分（留作 Step 12）
+#### POST /api/v1/qa/ask — RAG 问答（留作 Step 11）
+#### POST /api/v1/quizzes/generate — AI 自动出题（留作 Step 13）
+#### GET /api/v1/quizzes — 测验列表（留作 Step 13）
 
 ---
 

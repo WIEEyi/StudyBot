@@ -39,7 +39,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | 1 | 用户认证系统 (JWT) | ✅ 已完成 | P0 | Phase 1 |
 | 2 | 学习目标管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
 | 3 | 任务管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
-| 4 | AI 学习计划生成 (PlannerAgent) | 🔄 待开发 | P0 | Phase 1 |
+| 4 | AI 学习计划生成 (PlannerAgent) | ✅ 已完成 | P0 | Phase 1 |
 | 5 | 知识库 RAG 问答 (DigestAgent) | 📋 规划中 | P1 | Phase 2 |
 | 6 | 间隔复习 (SM-2 算法) | 📋 规划中 | P1 | Phase 2 |
 | 7 | 自动出题 (QuizAgent) | 📋 规划中 | P2 | Phase 2 |
@@ -73,33 +73,104 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 
 ### 2.3 待开发功能详情
 
-#### 2.3.1 AI 学习计划生成 (Step 8 - 下一步)
+#### 2.3.1 AI 学习计划生成 (Step 8 - 已完成)
 
-**功能描述**: 用户创建一个学习目标后，调用 PlannerAgent（LangGraph），AI 自动将目标分解为结构化的学习计划。
+**功能描述**: 用户创建一个学习目标后，通过 WebSocket 连接触发 PlannerAgent（LangGraph），AI 自动将目标分解为结构化的学习计划（里程碑 + 任务），并通过 WebSocket 实时推送生成进度。
+
+**技术实现**:
+- **Agent 框架**: LangGraph StateGraph（3 节点工作流）
+- **LLM**: ChatOpenAI（model=gpt-4o），使用 structured output 确保返回格式
+- **实时通信**: FastAPI WebSocket，JWT Token 认证
+
+**Agent 工作流**:
+```
+START → analyze_goal（分析目标）→ generate_plan（LLM 生成计划）→ save_plan（批量入库）→ END
+```
+每个节点执行时通过 WebSocket 推送进度事件。
 
 **输入**:
-- 目标 ID（已有 Goal）
-- 用户的偏好设置（可选：每日学习时长、截止日期）
+- `goal_id`: 已有学习目标的 ID
+- JWT access_token（WebSocket 连接时通过 query param 传入）
 
 **处理流程**:
-1. 分析目标范围和学习路径
-2. 生成里程碑（阶段性目标）
-3. 为每个里程碑生成具体任务
-4. 为任务分配优先级和预估时间
-5. 通过 WebSocket 实时推送生成进度
+1. **分析阶段** (`analyze_goal`): 从数据库加载目标信息，构造 LLM 上下文
+2. **生成阶段** (`generate_plan`): LLM 分析目标，拆解为 3-5 个里程碑，每个里程碑下生成 3-8 个具体任务，为每个任务分配优先级和预估耗时
+3. **保存阶段** (`save_plan`): 批量 INSERT 任务到数据库，关联到目标
+
+**WebSocket 事件流**:
+| 事件 | 触发时机 | 数据格式 |
+|------|----------|----------|
+| `thinking` | 开始分析 | `{"event": "thinking", "message": "正在分析..."}` |
+| `milestone` | 每生成一个里程碑 | `{"event": "milestone", "data": {"title": "阶段一", "order": 1}}` |
+| `task` | 每生成一个任务 | `{"event": "task", "data": {...task字段}}` |
+| `complete` | 全部完成 | `{"event": "complete", "data": {"total_tasks": N, "total_minutes": M}}` |
+| `error` | 发生错误 | `{"event": "error", "message": "错误描述"}` |
 
 **输出**:
-- 一系列 Task（任务），关联到该 Goal
-- 每个 Task 包含：标题、描述、优先级、预估耗时、截止日期、里程碑标记
+- 一系列 Task（任务）写入数据库，关联到该 Goal
+- 每个 Task 包含：标题、描述、优先级、预估耗时(分钟)、milestone(里程碑名称)
 
-#### 2.3.2 知识库 RAG 问答 (Step 9+)
+**边界条件与错误处理**:
+- Goal 不存在 → 返回 `error` 事件
+- Goal 不属于当前用户 → 返回 `error` 事件
+- LLM API 调用失败 → 返回 `error` 事件，不保存部分结果
+- 无有效 OpenAI API Key → 返回 `error` 事件
+- WebSocket 连接超时(30s) → 自动关闭连接
 
-**功能描述**: 用户上传学习文档（PDF/Markdown/TXT），系统进行文本分块和向量化存储（pgvector），支持语义搜索和 AI 问答。
+**数据库变更**:
+- Task 模型新增 `milestone` 字段（VARCHAR(100)，可空），用于按里程碑分组任务
 
-**输入**: 文档文件 + 用户问题
+#### 2.3.2 文档上传 + 文本提取 (Step 9 - 进行中)
+
+**功能描述**: 用户上传学习文档（PDF/Markdown/TXT/HTML），系统自动提取文本内容并存入数据库。这是后续文本分块、向量嵌入和 RAG 问答的前置基础。
+
+**技术实现**:
+- **文件上传**: FastAPI `UploadFile` + `File`，通过 multipart/form-data 接收
+- **文本提取**: PDF→PyPDF2、Markdown→markdown-it-py、HTML→BeautifulSoup4、TXT→直接读取
+- **文件存储**: 本地磁盘 `/app/uploads/{user_id}/`（Docker 命名卷持久化）
+- **数据库**: Document 模型已存在（Step 6 创建），包含 title、file_path、content、file_type 字段
+
+**输入**:
+- `file`: 上传的文件（最大 50MB）
+- `title`: 文档标题（可选，默认为文件名）
+- JWT access_token（请求头）
+
+**处理流程**:
+1. **接收文件**: 校验文件类型（仅允许 pdf/md/txt/html），校验文件大小
+2. **保存文件**: 按 `{user_id}/{uuid}.{ext}` 路径保存到磁盘
+3. **文本提取**: 根据文件类型调用对应的提取器，获取纯文本内容
+4. **存储记录**: 将文件路径和提取的文本内容写入 documents 表
+
+**输出**:
+- Document 记录写入数据库，包含原始文件和提取文本的引用
+
+**边界条件与错误处理**:
+- 不支持的文件类型 → 422 错误
+- 文件大小超过 50MB → 413 错误
+- 空文件（0 字节） → 422 错误
+- 文本提取失败（文件损坏） → 500 错误，但文件已保存（不丢失原始数据）
+- 同名文件 → 允许（内部用 UUID 命名，不冲突）
+- 磁盘空间不足 → 500 错误
+
+**支持的文件格式**:
+
+| 格式 | 扩展名 | 提取方式 | 依赖库 |
+|------|--------|----------|--------|
+| PDF | `.pdf` | PyPDF2 逐页提取 | pypdf2 (已安装) |
+| Markdown | `.md` | 保留原始文本（去格式用 markdown-it-py） | markdown-it-py (已安装) |
+| 纯文本 | `.txt` | 直接读取 | 无 |
+| HTML | `.html`, `.htm` | BeautifulSoup4 提取纯文本 | beautifulsoup4 (新增) |
+
+**数据库变更**: 无（Document 模型已在 Step 6 创建）
+
+#### 2.3.3 向量嵌入 + RAG 问答 (Step 10-11)
+
+**功能描述**: 对已提取的文档文本进行分块和向量嵌入存储（pgvector），支持语义搜索和 AI 问答。
+
+**输入**: 文档文本 + 用户问题
 **输出**: AI 生成的答案 + 引用来源
 
-#### 2.3.3 间隔复习 (Step 10+)
+#### 2.3.4 间隔复习 (Step 12+)
 
 **功能描述**: 基于 SM-2 算法，根据用户的复习反馈（遗忘程度）自动计算下次复习时间。
 
@@ -108,19 +179,19 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 - SM-2 算法调整 ease_factor、interval、repetitions
 - 系统自动提醒到期复习的卡片
 
-#### 2.3.4 自动出题 (Step 11+)
+#### 2.3.5 自动出题 (Step 13+)
 
 **功能描述**: 基于用户的学习材料，AI 自动生成测验题目（选择题、判断题、简答题）。
 
-#### 2.3.5 知识图谱 (Step 12+)
+#### 2.3.6 知识图谱 (Step 14+)
 
 **功能描述**: 将学习过程中的概念和它们之间的关系（前置/相关/包含）可视化为知识图谱。
 
-#### 2.3.6 动态计划调整 (Step 13+)
+#### 2.3.7 动态计划调整 (Step 15+)
 
 **功能描述**: 检测学习进度落后时，AI 自动重新排程，调整后续任务的截止日期和优先级。
 
-#### 2.3.7 学习仪表盘 (Step 14+)
+#### 2.3.8 学习仪表盘 (Step 16+)
 
 **功能描述**: 可视化展示学习统计——热力图（每日学习时长）、连续学习天数、完成任务数、AI 每周学习洞察。
 
@@ -354,7 +425,7 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | 5 | 用户认证 | 注册/登录/JWT | ✅ |
 | 6 | 数据模型 | 全部 8 个 ORM 模型 + Alembic | ✅ |
 | 7 | Goals + Tasks CRUD | 目标和任务的完整 REST API | ✅ |
-| 8 | PlannerAgent | AI 学习计划生成 + WebSocket | 🔄 下一步 |
+| 8 | PlannerAgent | AI 学习计划生成 + WebSocket | ✅ |
 
 ### Phase 2: 智能学习辅助
 

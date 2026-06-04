@@ -590,18 +590,165 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.2 Knowledge Base (Step 9-11)
+### 3.2 Documents Module — Step 9 🔄
+
+**Supported Document Formats**: PDF (.pdf), Markdown (.md), Plain Text (.txt), HTML (.html/.htm)
+
+---
 
 #### POST /api/v1/documents — Upload Document
-#### GET /api/v1/documents — List Documents
-#### GET /api/v1/documents/{id} — Document Detail
-#### DELETE /api/v1/documents/{id} — Delete Document
-#### POST /api/v1/qa/ask — RAG Q&A
-#### GET /api/v1/review-cards — List Review Cards
-#### POST /api/v1/review-cards — Create Review Card
-#### PATCH /api/v1/review-cards/{id}/review — Submit Review Rating
-#### POST /api/v1/quizzes/generate — AI Generate Quiz
-#### GET /api/v1/quizzes — List Quizzes
+
+**Description**: Upload a learning document. The system automatically extracts text content, saves the original file, and records it in the database.
+
+**Headers**: `Authorization: Bearer <access_token>`
+**Content-Type**: `multipart/form-data`
+
+**Request Body**:
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| file | file (binary) | Yes | - | File to upload, max 50MB |
+| title | string (1-255) | No | Filename | Document title, defaults to filename if omitted |
+
+**Supported File Types**: `pdf`, `md`, `txt`, `html`, `htm`
+
+**Success Response** (201):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "title": "Python Study Notes",
+  "file_path": "/app/uploads/1/a1b2c3d4.pdf",
+  "file_type": "pdf",
+  "content": "Chapter 1: Python Basics...(extracted plain text)",
+  "created_at": "2026-06-04T10:00:00Z",
+  "updated_at": "2026-06-04T10:00:00Z"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Description |
+|-------|-------------|
+| content | Extracted text content for subsequent vectorization and full-text search |
+
+**Error Responses**:
+- `401` — Unauthorized
+- `422` — Unsupported file type, empty file (0 bytes), or title validation failure
+- `413` — File size exceeds 50MB
+- `500` — File save failure or text extraction failure
+
+**Business Rules**:
+1. Files are stored as `{user_id}/{uuid}.{ext}`, avoiding name collisions
+2. Text extraction is triggered immediately after upload, result written to content field synchronously
+3. Text extraction failure does not prevent file saving (original file preserved on disk)
+4. Only one file per request
+
+---
+
+#### GET /api/v1/documents — List Documents (Paginated)
+
+**Headers**: `Authorization: Bearer <access_token>`
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| file_type | string | No | - | Filter by type: `pdf`, `md`, `txt`, `html` |
+| offset | integer | No | 0 | Pagination offset |
+| limit | integer | No | 20 | Items per page (max 100) |
+
+**Success Response** (200):
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "title": "Python Study Notes",
+      "file_path": "/app/uploads/1/a1b2c3d4.pdf",
+      "file_type": "pdf",
+      "content": "Chapter 1: Python Basics...",
+      "created_at": "2026-06-04T10:00:00Z",
+      "updated_at": "2026-06-04T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+**Note**: `content` field in the list is truncated to the first 200 characters as a preview. Use the detail endpoint for the full content.
+
+**Error Responses**:
+- `401` — Unauthorized
+- `422` — Invalid file_type value
+
+---
+
+#### GET /api/v1/documents/{document_id} — Get Document Detail
+
+**Headers**: `Authorization: Bearer <access_token>`
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| document_id | integer | Document ID |
+
+**Success Response** (200):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "title": "Python Study Notes",
+  "file_path": "/app/uploads/1/a1b2c3d4.pdf",
+  "file_type": "pdf",
+  "content": "Chapter 1: Python Basics\n1.1 Variables and Data Types\n...(full extracted text content)",
+  "created_at": "2026-06-04T10:00:00Z",
+  "updated_at": "2026-06-04T10:00:00Z"
+}
+```
+
+**Error Responses**:
+- `401` — Unauthorized
+- `403` — Document does not belong to current user
+- `404` — Document not found
+
+---
+
+#### DELETE /api/v1/documents/{document_id} — Delete Document
+
+**Description**: Deletes both the original file on disk and the database record. This operation is irreversible.
+
+**Headers**: `Authorization: Bearer <access_token>`
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| document_id | integer | Document ID |
+
+**Success Response** (204): No body
+
+**Error Responses**:
+- `401` — Unauthorized
+- `403` — Document does not belong to current user
+- `404` — Document not found
+
+**Business Rules**:
+1. Database record and disk file are both deleted (best effort: file deletion failure won't block database cleanup)
+2. Deleted content is unrecoverable
+
+---
+
+#### GET /api/v1/review-cards — List Review Cards (reserved for Step 12)
+#### POST /api/v1/review-cards — Create Review Card (reserved for Step 12)
+#### PATCH /api/v1/review-cards/{id}/review — Submit Review Rating (reserved for Step 12)
+#### POST /api/v1/qa/ask — RAG Q&A (reserved for Step 11)
+#### POST /api/v1/quizzes/generate — AI Generate Quiz (reserved for Step 13)
+#### GET /api/v1/quizzes — List Quizzes (reserved for Step 13)
 
 ---
 

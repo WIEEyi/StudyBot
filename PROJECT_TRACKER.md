@@ -129,10 +129,10 @@ pyProject/
 
 ## 当前状态
 
-- **阶段**: Phase 1 - MVP
-- **步骤**: Step 8 前置工作（PRD + API 文档 + Git 仓库初始化）
+- **阶段**: Phase 1 - MVP → Phase 2 过渡
+- **步骤**: Step 9 进行中 — 文档上传 + 文本提取
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-02 (PRD 中英文、API 文档中英文、Git 仓库初始化、开发流程完善)
+- **最后更新**: 2026-06-04 (Step 9 开始)
 
 ---
 
@@ -150,16 +150,18 @@ pyProject/
 | 2026-06-01 | Step 6 | 数据库模型 + Alembic 迁移完成 ✅ |
 | 2026-06-02 | Step 7 | Goals + Tasks CRUD API + 单元测试（45/45 全部通过）✅ |
 | 2026-06-02 | 基础设施 | PRD 中英文文档 + API 中英文文档 + Git 初始化 + 开发流程完善 ✅ |
+| 2026-06-02 | Step 8 | PlannerAgent + WebSocket — AI 学习计划生成 ✅ |
+| 2026-06-04 | Step 9 | 文档上传 + 文本提取 🔄 |
 
 ### 🔄 进行中
 
-_无_
+_Step 9: 文档上传 + 文本提取（PRD/API 文档编写中）_
 
 ### 📋 下一步
 
 | 步骤 | 描述 |
 |------|------|
-| Step 8 | PlannerAgent + WebSocket — AI 学习计划生成 |
+| Step 10 | 向量嵌入 (Text Chunking + OpenAI Embedding + pgvector) |
 
 ### 💡 待办改进
 
@@ -409,9 +411,134 @@ docker compose exec backend pytest tests/api/v1/test_tasks.py -v
 
 ---
 
-### Step 8: PlannerAgent + WebSocket
+### Step 8: PlannerAgent + WebSocket ✅ (代码完成，待 Docker 验证)
 
-_(详细指令将在 Step 7 完成后写入)_
+**目标**: 实现 AI 驱动的学习计划生成功能，用户在创建 Goal 后通过 WebSocket 触发 Agent 自动分解为里程碑和每日任务。
+
+**技术概念**:
+- **LangGraph StateGraph**: 有状态的 Agent 工作流编排
+- **ChatOpenAI Structured Output**: 要求 LLM 返回符合 Pydantic 模型的结构化 JSON
+- **WebSocket 流式推送**: 服务端主动推送进度事件，客户端实时展示
+- **LangChain Message**: SystemMessage + HumanMessage 构建 LLM 上下文
+
+**已创建的文件**:
+
+1. `backend/app/agents/planner_agent.py` — LangGraph PlannerAgent
+   - `PlannerState(TypedDict)` — 工作流状态: goal_id, user_id, goal_title, milestones, tasks, error
+   - `PlanOutput/MilestoneOutput/TaskOutput(Pydantic)` — LLM 结构化输出模型
+   - `analyze_goal(state)` — 节点1: 从 DB 加载 Goal，验证归属权
+   - `generate_plan(state)` — 节点2: ChatOpenAI 调用，生成里程碑(3-5个) + 任务(每个里程碑3-8个)
+   - `save_plan(state)` — 节点3: 批量 INSERT 任务到 DB
+   - `build_planner_graph()` — 编译 LangGraph 工作流
+   - `run_planner()` — 公开入口，接受 stream_callback 用于 WebSocket 推送
+
+2. `backend/app/api/v1/ws.py` — WebSocket 端点
+   - `_authenticate_ws(websocket, token)` — JWT 认证（token 无效 → close code 4001）
+   - `websocket_plan(websocket)` — 主处理函数
+     - 30 秒超时无消息自动断开
+     - 支持 `generate_plan` action
+     - stream_callback 封装 WebSocket.send_json()
+     - 完整的错误处理和日志记录
+
+3. `backend/tests/api/v1/test_ws_planner.py` — 单元测试（10 个用例）
+   - TestPlannerAgent (6): 正常流程、Goal 不存在、无权限、LLM 失败、Graph 结构验证、milestone 字段验证
+   - TestWebSocketAuth (3): 无 token、无效 token、refresh_token 被拒
+   - TestTaskSchemas (3): milestone 字段 CRUD 透传验证
+
+**已修改的文件**:
+
+4. `backend/app/models/task.py` — 添加 `milestone` 字段 (VARCHAR(100), nullable)
+5. `backend/app/schemas/task.py` — TaskCreate/TaskUpdate/TaskResponse 各加 `milestone` 字段
+6. `backend/app/main.py` — 注册 WebSocket 路由 `app.websocket("/api/v1/ws/plan")(websocket_plan)`
+
+**已更新的文档**:
+7. `docs/PRD_zh.md` — 补充 2.3.1 完整功能描述（Agent 架构、事件流、边界条件）
+8. `docs/PRD_en.md` — English PRD sync
+9. `docs/API_zh.md` — 补充 3.1 WebSocket 接口完整文档（消息协议、错误码、流程图）
+10. `docs/API_en.md` — English API docs sync
+
+**数据库迁移（待执行）**:
+```bash
+# 启动 Docker 后运行:
+docker compose up -d
+docker compose exec backend alembic revision --autogenerate -m "add milestone to tasks"
+docker compose exec backend alembic upgrade head
+```
+
+**验证方法**:
+```bash
+# 运行全部测试
+docker compose exec backend pytest -v
+
+# 只跑 Step 8 测试
+docker compose exec backend pytest tests/api/v1/test_ws_planner.py -v
+
+# 手动 WebSocket 测试
+pip install websocket-client
+python -c "
+import websocket, json
+ws = websocket.create_connection('ws://localhost:8000/api/v1/ws/plan?token=YOUR_TOKEN')
+ws.send(json.dumps({'action': 'generate_plan', 'goal_id': 1}))
+while True:
+    msg = ws.recv()
+    print(msg)
+"
+```
+
+---
+
+### Step 9: 文档上传 + 文本提取 🔄 (进行中)
+
+**目标**: 实现学习文档上传功能，支持 PDF/Markdown/TXT/HTML 四种格式，自动提取文本内容存入数据库，为后续 RAG 知识库检索打下基础。
+
+**技术概念**:
+- **Multipart Form Upload**: FastAPI 的 `UploadFile` + `File` 接收 multipart/form-data 文件
+- **文本提取**: 不同格式用不同库处理——PDF→PyPDF2、Markdown/TXT→直接读取、HTML→BeautifulSoup4 去标签
+- **文件存储**: 文件保存到 `/app/uploads/`（Docker 命名卷），数据库只记录路径和提取后的文本
+- **用户隔离**: 文件存储按 user_id 分子目录（如 `/app/uploads/1/doc.pdf`）
+
+**要创建的文件**:
+
+1. `backend/app/schemas/document.py` — Document Pydantic 模型
+   - `DocumentCreate` — title（可选，默认取文件名）
+   - `DocumentUpdate` — title 可选更新
+   - `DocumentResponse` — 完整文档数据（含 content 文本内容）
+   - `DocumentListResponse` — 分页列表 {items, total, offset, limit}
+
+2. `backend/app/services/document_service.py` — 文本提取服务
+   - `extract_text_from_pdf(file_path)` — PyPDF2 提取 PDF 文本
+   - `extract_text_from_markdown(file_path)` — 直接读取 MD 文件
+   - `extract_text_from_txt(file_path)` — 直接读取 TXT 文件
+   - `extract_text_from_html(file_path)` — BeautifulSoup4 提取 HTML 纯文本
+   - `extract_text(file_path, file_type)` — 统一入口，根据类型分发
+   - `save_upload_file(upload_file, user_id)` — 保存文件到磁盘，返回路径
+   - `delete_upload_file(file_path)` — 删除磁盘上的文件
+
+3. `backend/app/api/v1/documents.py` — 文档路由
+   - `POST   /documents` — 上传文档（multipart form: file + title）
+   - `GET    /documents` — 分页列表（支持 file_type 过滤）
+   - `GET    /documents/{id}` — 文档详情（含提取的文本内容）
+   - `DELETE /documents/{id}` — 删除文档（文件 + 数据库记录）
+
+4. `backend/tests/api/v1/test_documents.py` — 单元测试
+   - 正常: 上传 4 种格式文件 / 列表 / 详情 / 删除
+   - 异常: 401 无认证、404 文档不存在、422 不支持的文件类型、403 无权访问他人文档
+
+**要修改的文件**:
+
+5. `backend/app/main.py` — 注册 documents 路由
+6. `backend/requirements.txt` — 添加 `beautifulsoup4`（HTML 文本提取）
+7. `docker-compose.yml` — backend 服务添加 `uploads` 数据卷挂载
+
+**验证方法**:
+
+```bash
+# 运行全部测试
+docker compose exec backend pytest -v
+
+# 只跑 Step 9 测试
+docker compose exec backend pytest tests/api/v1/test_documents.py -v
+```
 
 ---
 
