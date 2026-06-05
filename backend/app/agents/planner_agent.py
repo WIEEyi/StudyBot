@@ -216,15 +216,23 @@ async def save_plan(state: PlannerState) -> PlannerState:
         return state
 
     db: AsyncSession = state["db_session"]
+
+    # 建立里程碑名称 → order 的映射
+    milestone_order_map = {
+        m["title"]: m["order"] for m in state.get("milestones", [])
+    }
+
     task_objects = []
 
     for t in state.get("tasks", []):
+        milestone_name = t.get("milestone", "")
         task_obj = Task(
             user_id=state["user_id"],
             goal_id=state["goal_id"],
             title=t["title"],
             description=t.get("description"),
-            milestone=t.get("milestone"),
+            milestone=milestone_name,
+            milestone_order=milestone_order_map.get(milestone_name),
             priority=t.get("priority", "medium"),
             estimated_minutes=t.get("estimated_minutes"),
         )

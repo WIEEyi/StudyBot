@@ -1,7 +1,10 @@
 """
 Quiz 测验题模型
 
-支持单选题（options 是 JSON 数组，correct_answer 是正确答案索引）。
+支持三种题型:
+- multiple_choice: options 是 4 个选项的 JSON 数组，correct_answer 是正确选项的文本
+- true_false: options 是 ["对","错"]，correct_answer 是 "对" 或 "错"
+- short_answer: options 为空，correct_answer 是答案摘要
 """
 
 from typing import Optional, TYPE_CHECKING
@@ -18,7 +21,7 @@ class Quiz(Base, TimestampMixin):
     """测验题
 
     options: JSON 数组，如 ["选项A", "选项B", "选项C", "选项D"]
-    correct_answer: 正确答案在 options 数组中的索引（0-based）
+    correct_answer: 正确答案文本（选择题=选项文本，判断题="对"/"错"，简答题=答案摘要）
     explanation: 答案解析
     """
 

@@ -29,6 +29,12 @@ class QARequest(BaseModel):
         le=20,
         description="检索的最相关分块数量",
     )
+    threshold: float = Field(
+        0.3,
+        ge=0.0,
+        le=1.0,
+        description="最低余弦相似度阈值 (0-1)，低于此值的结果将被过滤",
+    )
 
 
 class CitationItem(BaseModel):

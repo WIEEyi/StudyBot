@@ -71,6 +71,7 @@ async def ask_question(
             db_session=db,
             document_id=request.document_id,
             top_k=request.top_k,
+            threshold=request.threshold,
         )
     except Exception as e:
         logger.error("DigestAgent 执行失败: %s", str(e))

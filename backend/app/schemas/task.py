@@ -15,6 +15,7 @@ class TaskCreate(BaseModel):
     description: Optional[str] = Field(None, description="任务描述")
     goal_id: Optional[int] = Field(None, description="关联的学习目标 ID（可选）")
     milestone: Optional[str] = Field(None, max_length=100, description="里程碑名称（AI 计划生成时自动填写）")
+    milestone_order: Optional[int] = Field(None, ge=1, description="里程碑序号（1-based，用于排序展示）")
     priority: Literal["low", "medium", "high"] = Field("medium", description="优先级: low/medium/high")
     due_date: Optional[datetime] = Field(None, description="截止日期")
     estimated_minutes: Optional[int] = Field(None, ge=1, description="预估耗时（分钟）")
@@ -28,6 +29,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     goal_id: Optional[int] = None
     milestone: Optional[str] = Field(None, max_length=100)
+    milestone_order: Optional[int] = Field(None, ge=1)
     priority: Optional[str] = None
     due_date: Optional[datetime] = None
     status: Optional[str] = None  # 也支持直接修改状态
@@ -44,6 +46,7 @@ class TaskResponse(BaseModel):
     title: str
     description: Optional[str] = None
     milestone: Optional[str] = None
+    milestone_order: Optional[int] = None
     priority: str
     due_date: Optional[datetime] = None
     status: str

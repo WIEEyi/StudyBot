@@ -56,6 +56,7 @@ class DigestState(TypedDict):
     db_session: Any         # 数据库异步会话
     document_id: Optional[int]  # 可选，限定搜索特定文档
     top_k: int              # 检索分块数量
+    threshold: float        # 最低余弦相似度阈值
     search_results: List[Dict[str, Any]]  # 语义搜索结果
     context_text: str       # 组装好的上下文文本（喂给 LLM）
     answer: str             # LLM 生成的最终答案
@@ -70,6 +71,7 @@ async def _search_chunks_in_db(
     user_id: int,
     document_id: Optional[int],
     top_k: int,
+    threshold: float,
     db: AsyncSession,
 ) -> list[dict]:
     """在 pgvector 中执行余弦相似度搜索
@@ -92,7 +94,7 @@ async def _search_chunks_in_db(
         WHERE dc.user_id = :user_id
           AND dc.embedding IS NOT NULL
           {doc_filter}
-          AND 1 - (dc.embedding <=> CAST(:query_vec AS vector)) >= 0.3
+          AND 1 - (dc.embedding <=> CAST(:query_vec AS vector)) >= :threshold
         ORDER BY dc.embedding <=> CAST(:query_vec AS vector)
         LIMIT :top_k
     """)
@@ -102,6 +104,7 @@ async def _search_chunks_in_db(
         "query_vec": vec_str,
         "user_id": user_id,
         "top_k": top_k,
+        "threshold": threshold,
     }
     if document_id:
         params["document_id"] = document_id
@@ -149,6 +152,7 @@ async def search_chunks(state: DigestState) -> DigestState:
         user_id=state["user_id"],
         document_id=state.get("document_id"),
         top_k=state["top_k"],
+        threshold=state["threshold"],
         db=state["db_session"],
     )
 
@@ -294,6 +298,7 @@ async def run_digest(
     db_session: AsyncSession,
     document_id: Optional[int] = None,
     top_k: int = 5,
+    threshold: float = 0.3,
 ) -> DigestState:
     """运行 DigestAgent
 
@@ -329,6 +334,7 @@ async def run_digest(
         "db_session": db_session,
         "document_id": document_id,
         "top_k": top_k,
+        "threshold": threshold,
         "search_results": [],
         "context_text": "",
         "answer": "",
