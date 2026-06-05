@@ -44,27 +44,51 @@ task_logs/
 
 ## 当前会话
 
-_无进行中会话（Step 13 已完成，等待开始 Step 14）_
+_会话已终止（2026-06-05 会话结束）_
 
 ---
 
-## 2026-06-05 会话结束 (Step 13)
+## 2026-06-05 会话结束（最终）
 
 **完成的工作**:
-- ✅ Step 13 自动出题完整实现: 5 个新文件 + 2 个修改文件
-- ✅ QuizAgent LangGraph 工作流 (load_document → generate_quizzes → save_quizzes)
-- ✅ API: POST /quizzes/generate + GET /quizzes + GET /quizzes/{id} + DELETE /quizzes/{id}
-- ✅ LLM 结构化输出: 支持选择题(multiple_choice) + 判断题(true_false) + 简答题(short_answer)
-- ✅ PRD 中英文更新 (§2.3.4 自动出题)
-- ✅ 全量测试: 157/157 全部通过 (+12 Quiz 测试)
-- ✅ Docker 服务全部 running
 
-**当日累计**: Step 11 (RAG) + Step 12 (SM-2) + Step 13 (QuizAgent) 三个步骤全部完成
-**结束位置**: Step 13 全部完成 ✅，Step 14 (知识图谱) 待开始
-**分支**: feature/step-10-vector-embedding
+**Step 11 — RAG 问答 (DigestAgent)**:
+- ✅ DigestAgent LangGraph 工作流 (search_chunks → generate_answer)
+- ✅ API: POST /api/v1/qa/ask + schemas/qa.py
+- ✅ 12 个单元测试，全部通过
+
+**Step 12 — 间隔复习 (SM-2 算法)**:
+- ✅ SM-2 算法纯函数 (calculate_sm2 + is_card_due)
+- ✅ ReviewCard CRUD + POST /review-cards/{id}/review 评分端点
+- ✅ 到期过滤 (overdue/today/all)
+- ✅ 34 个测试（含 9 个 SM-2 算法单元测试），全部通过
+
+**Step 13 — 自动出题 (QuizAgent)**:
+- ✅ QuizAgent LangGraph 工作流 (load_document → generate_quizzes → save_quizzes)
+- ✅ API: POST /quizzes/generate + CRUD
+- ✅ 支持选择题、判断题、简答题三种题型
+- ✅ 12 个单元测试，全部通过
+
+**全量代码审计**:
+- ✅ 审计所有 59 个源码文件
+- ✅ 修复 3 个问题:
+  1. Quiz correct_answer 注释修正（索引 → 答案文本）
+  2. DigestAgent threshold 可配置化
+  3. milestone_order 持久化（Task 新列 + PlannerAgent 映射 + Alembic 迁移）
+
+**文档更新**:
+- ✅ PRD 中英文: Step 11/12/13 功能详情
+- ✅ API 中英文: 新增 §3.5 (RAG) + §3.6 (间隔复习) + §3.7 (测验题)
+
+**当日累计**: 3 个完整 Step + 1 次审计 = 58 个新测试 + 3 个 Bug 修复
+**最终测试**: **157/157 全部通过**
+**Git 提交**: 4 个 commits 已推送到 GitHub (`feature/step-10-vector-embedding`)
+
+**结束位置**: Phase 2 (Step 9-13) 全部完成 ✅，Step 14 (知识图谱) 待开始
+**分支**: feature/step-10-vector-embedding（已推送）
 **Docker 服务**: 全部 running
 **下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
-**下一步**: Step 14 — 知识图谱 (概念关系可视化)
+**下一步**: Step 14 — 知识图谱 (Concept + ConceptRelation API)
 
 **完成的工作**:
 - ✅ Step 11 RAG 问答完整实现: 5 个新文件 + 2 个修改文件

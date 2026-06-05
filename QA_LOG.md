@@ -4,7 +4,28 @@
 
 ---
 
-## 2026-06-05
+## 2026-06-05 (下午会话)
+
+### 全量代码审计
+
+**审计范围**: 59 个源码文件 (45 app/ + 14 tests/) + 157 个测试用例
+
+**发现 3 个需要修复的问题**:
+
+1. **Quiz correct_answer 注释不一致** — `models/quiz.py` 注释说 correct_answer 是 options 数组索引，但 QuizAgent LLM 提示词要求填选项文本。实际用法是文本（支持选择题、判断题、简答题），已修正注释。
+
+2. **DigestAgent threshold 硬编码** — `digest_agent.py:95` 相似度阈值硬编码为 0.3，而 Step 10 的搜索端点支持用户配置 threshold。已添加 threshold 参数到 QARequest，默认 0.3，可配置。
+
+3. **milestone_order 未持久化** — PlannerAgent 从 LLM 收集 MilestoneOutput.order，但 Task 模型只有 milestone 字符串，order 丢失。已添加 milestone_order 列 + PlannerAgent 映射 + Alembic 迁移。
+
+**其他审计发现**:
+- 🟡 WebSocket token 通过查询参数传递（存在日志泄露风险）
+- 🟡 测试中硬编码 99999 作为"不存在的 ID"（脆弱）
+- 🟡 embedding_service 延迟导入（运行时而非启动时报错）
+- 🔵 Concept/ConceptRelation 模型存在但无 API（Step 14 待开发）
+- 🔵 celery_app/ 和 mq/ 目录仅占位（后续需要时再实现）
+
+---
 
 ### Q: Git push 代理连接失败？
 
