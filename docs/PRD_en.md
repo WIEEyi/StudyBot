@@ -44,7 +44,7 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 | 6 | Spaced Repetition (SM-2 Algorithm) | 🔄 In Progress | P1 | Phase 2 |
 | 7 | Auto Quiz Generation (QuizAgent) | 📋 Planned | P2 | Phase 2 |
 | 8 | Knowledge Graph Visualization | ✅ Completed | P2 | Phase 3 |
-| 9 | Dynamic Schedule Adjustment (SchedulerAgent) | 📋 Planned | P2 | Phase 3 |
+| 9 | Dynamic Schedule Adjustment (SchedulerAgent) | ✅ Completed | P2 | Phase 3 |
 | 10 | Learning Dashboard | 📋 Planned | P2 | Phase 3 |
 
 ### 2.2 Completed Features Detail
@@ -175,9 +175,22 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 - `GET /graph` — Returns complete graph data (nodes + edges), ready for D3.js/Cytoscape.js rendering
 - `GET /graph/stats` — Returns statistics (by category / by relation type)
 
-#### 2.3.6 Dynamic Schedule Adjustment (Step 13+)
+#### 2.3.6 Dynamic Schedule Adjustment (Step 15) ✅
 
-**Description**: Detect when learning progress falls behind, AI automatically reschedules tasks.
+**Description**: Detect when learning progress falls behind, AI automatically reschedules tasks by adjusting due dates and priorities.
+
+**SchedulerAgent Workflow** (LangGraph):
+1. **analyze_progress**: Load goal + all tasks, calculate completion rate, overdue count, estimated remaining time
+2. **generate_schedule**: Call LLM to analyze progress and generate TaskAdjustment list (new due date / new priority / reason)
+3. **apply_schedule**: Write adjustments to database
+
+**Key Features**:
+- Preview mode: `apply_changes=false` returns analysis report without modifying data
+- Auto-apply: `apply_changes=true` directly updates task due_date and priority
+- AI only adjusts todo/in_progress tasks, never touches done/cancelled
+- Suggested due dates never exceed the goal's deadline
+
+**API**: POST /goals/{goal_id}/schedule
 
 #### 2.3.7 Learning Dashboard (Step 14+)
 

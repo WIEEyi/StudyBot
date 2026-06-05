@@ -46,10 +46,24 @@ task_logs/
 
 ## 当前会话
 
-**Step 14** ✅ + **Step 15** ✅:
-- Step 14: 知识图谱 — Concepts CRUD + Relations API + Graph API (45 tests)
-- Step 15: SchedulerAgent — AI 进度分析 + 动态重排 (12 tests)
-- 全量: 214/214 通过
+_会话已终止（2026-06-05 会话结束）_
+
+---
+
+## 2026-06-05 会话结束（Step 14 + Step 15）
+
+**完成的工作**:
+- ✅ Step 14: 知识图谱 — Concepts CRUD + Relations API + Graph API + 45 tests
+- ✅ Step 15: SchedulerAgent — AI 进度分析 + 动态重排 + 12 tests
+- ✅ 全量测试: 214/214 通过
+- ✅ 文档更新: PRD + API 中英文（Step 14 + Step 15）
+- ✅ Bug 修复: Concept passive_deletes 级联删除
+
+**结束位置**: Phase 3 Step 14-15 完成 ✅，Step 16 (学习仪表盘) 待开始
+**分支**: feature/step-10-vector-embedding（待推送）
+**Docker 服务**: 全部 running
+**下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
+**下一步**: Step 16 — 学习仪表盘（热力图、连续天数、AI 每周洞察）
 
 ---
 

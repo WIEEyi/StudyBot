@@ -605,7 +605,7 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.5 RAG Q&A Module (QA) — Step 11 🔄 In Progress
+### 3.5 RAG Q&A Module (QA) — Step 11 ✅ Completed
 
 #### POST /api/v1/qa/ask — RAG Knowledge Base Q&A
 
@@ -918,6 +918,77 @@ Returns all concepts (nodes) and relations (edges) for the current user, ready f
   "by_relation_type": {"prerequisite": 4, "related": 3, "part_of": 1}
 }
 ```
+
+---
+
+### 3.8 Dynamic Schedule Adjustment (Scheduler) — Step 15 ✅ Completed
+
+#### POST /api/v1/goals/{goal_id}/schedule — Trigger AI Dynamic Rescheduling
+
+**Description**: Analyzes the current progress of a goal. AI automatically generates adjustment plans (new due dates + new priorities + reasons) for overdue/falling-behind tasks. Supports preview mode.
+
+**Request Headers**: `Authorization: Bearer <access_token>`
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| goal_id | integer | Goal ID |
+
+**Request Body**:
+```json
+{
+  "apply_changes": true
+}
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| apply_changes | boolean | No | true | true=auto-apply adjustments to DB, false=preview only |
+
+**Success Response** (200):
+```json
+{
+  "goal_id": 1,
+  "goal_title": "Learn Python Full-Stack",
+  "analysis_summary": "Progress is significantly behind. 2 tasks are overdue...",
+  "applied": true,
+  "progress_report": {
+    "total_tasks": 10,
+    "done_tasks": 4,
+    "in_progress_tasks": 1,
+    "todo_tasks": 5,
+    "overdue_tasks": 2,
+    "completion_rate": 0.4,
+    "estimated_remaining_minutes": 420
+  },
+  "adjustments": [
+    {
+      "task_id": 5,
+      "title": "Learn Function Definitions",
+      "original_due_date": "2026-06-01",
+      "original_priority": "medium",
+      "suggested_due_date": "2026-06-08",
+      "suggested_priority": "high",
+      "reason": "This task is overdue and is a prerequisite. Recommend completion within 3 days."
+    }
+  ],
+  "adjustments_count": 2
+}
+```
+
+**Error Responses**:
+- `401` — Not authenticated
+- `403` — Goal does not belong to current user
+- `404` — Goal not found
+- `500` — AI analysis failed (LLM call error)
+
+**Business Rules**:
+1. Only adjusts tasks with status todo or in_progress; done/cancelled tasks are untouched
+2. Suggested due dates will not exceed the goal's deadline
+3. Preview mode (`apply_changes=false`) returns analysis report without modifying database
+4. Auto-apply (`apply_changes=true`) directly updates due_date and priority
+5. Empty goal (no tasks) returns empty adjustment plan
 
 ---
 

@@ -44,7 +44,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | 6 | 间隔复习 (SM-2 算法) | 🔄 开发中 | P1 | Phase 2 |
 | 7 | 自动出题 (QuizAgent) | 🔄 开发中 | P2 | Phase 2 |
 | 8 | 知识图谱可视化 | ✅ 已完成 | P2 | Phase 3 |
-| 9 | 动态计划调整 (SchedulerAgent) | 📋 规划中 | P2 | Phase 3 |
+| 9 | 动态计划调整 (SchedulerAgent) | ✅ 已完成 | P2 | Phase 3 |
 | 10 | 学习仪表盘 | 📋 规划中 | P2 | Phase 3 |
 
 ### 2.2 已完成功能详情
@@ -205,9 +205,22 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 - `GET /graph` — 返回完整图谱数据（节点列表 + 边列表），前端可直接用 D3.js/Cytoscape.js 渲染
 - `GET /graph/stats` — 返回统计信息（按分类/按关系类型）
 
-#### 2.3.6 动态计划调整 (Step 13+)
+#### 2.3.6 动态计划调整 (Step 15) ✅
 
 **功能描述**: 检测学习进度落后时，AI 自动重新排程，调整后续任务的截止日期和优先级。
+
+**SchedulerAgent 工作流** (LangGraph):
+1. **analyze_progress**: 加载目标 + 所有任务，计算完成率、过期任务数、预估剩余时间
+2. **generate_schedule**: 调用 LLM 分析进度状况，生成 TaskAdjustment 列表（新截止日期/新优先级/调整理由）
+3. **apply_schedule**: 将调整方案写入数据库
+
+**核心特性**:
+- 预览模式: `apply_changes=false` 仅生成分析报告，不修改数据
+- 自动应用: `apply_changes=true` 直接更新任务 due_date 和 priority
+- AI 只调整 todo/in_progress 状态的任务，不碰 done/cancelled
+- 调整后的截止日期不会超过目标 deadline
+
+**API**: POST /goals/{goal_id}/schedule
 
 #### 2.3.7 学习仪表盘 (Step 14+)
 

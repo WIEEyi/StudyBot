@@ -736,7 +736,7 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.5 RAG 问答模块 (QA) — Step 11 🔄 开发中
+### 3.5 RAG 问答模块 (QA) — Step 11 ✅ 已完成
 
 #### POST /api/v1/qa/ask — RAG 知识库问答
 
@@ -803,7 +803,7 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.6 间隔复习模块 (Review Cards) — Step 12 🔄 开发中
+### 3.6 间隔复习模块 (Review Cards) — Step 12 ✅ 已完成
 
 #### POST /api/v1/review-cards — 创建复习卡片
 
@@ -1115,6 +1115,77 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
   "by_relation_type": {"prerequisite": 4, "related": 3, "part_of": 1}
 }
 ```
+
+---
+
+### 3.8 动态计划调整模块 (Scheduler) — Step 15 ✅ 已完成
+
+#### POST /api/v1/goals/{goal_id}/schedule — 触发 AI 动态计划调整
+
+**描述**: 分析当前目标的进度，AI 自动为落后/过期任务生成调整方案（新截止日期 + 新优先级 + 理由），支持预览模式。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| goal_id | integer | 目标 ID |
+
+**请求体**:
+```json
+{
+  "apply_changes": true
+}
+```
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| apply_changes | boolean | 否 | true | true=自动应用调整到数据库，false=仅预览（不修改） |
+
+**成功响应** (200):
+```json
+{
+  "goal_id": 1,
+  "goal_title": "学习 Python 全栈开发",
+  "analysis_summary": "当前进度严重落后，有 2 个任务已过期。建议调整优先级和截止日期...",
+  "applied": true,
+  "progress_report": {
+    "total_tasks": 10,
+    "done_tasks": 4,
+    "in_progress_tasks": 1,
+    "todo_tasks": 5,
+    "overdue_tasks": 2,
+    "completion_rate": 0.4,
+    "estimated_remaining_minutes": 420
+  },
+  "adjustments": [
+    {
+      "task_id": 5,
+      "title": "学习函数定义",
+      "original_due_date": "2026-06-01",
+      "original_priority": "medium",
+      "suggested_due_date": "2026-06-08",
+      "suggested_priority": "high",
+      "reason": "该任务已过期且为前置依赖，建议 3 天内完成"
+    }
+  ],
+  "adjustments_count": 2
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `403` — 目标不属于当前用户
+- `404` — 目标不存在
+- `500` — AI 分析失败（LLM 调用错误）
+
+**业务规则**:
+1. 只调整状态为 todo 或 in_progress 的任务，不碰 done/cancelled
+2. 建议的截止日期不会超过目标 deadline
+3. 预览模式 (`apply_changes=false`) 仅返回分析报告，不修改数据库
+4. 自动应用 (`apply_changes=true`) 直接更新 due_date 和 priority
+5. 空目标（无任务）返回空调整方案
 
 ---
 
