@@ -101,6 +101,7 @@ from app.api.v1.review_cards import router as review_cards_router
 from app.api.v1.quizzes import router as quizzes_router
 from app.api.v1.concepts import router as concepts_router
 from app.api.v1.graph import router as graph_router
+from app.api.v1.scheduler import router as scheduler_router
 from app.api.v1.ws import websocket_plan
 
 app.include_router(auth_router, prefix="/api/v1")
@@ -114,6 +115,7 @@ app.include_router(review_cards_router, prefix="/api/v1")
 app.include_router(quizzes_router, prefix="/api/v1")
 app.include_router(concepts_router, prefix="/api/v1")
 app.include_router(graph_router, prefix="/api/v1")
+app.include_router(scheduler_router, prefix="/api/v1")
 
 # WebSocket 端点（不支持 include_router，需直接注册到 app）
 app.websocket("/api/v1/ws/plan")(websocket_plan)

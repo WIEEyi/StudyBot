@@ -157,7 +157,7 @@ pyProject/
 | 2026-06-05 | Step 12 | 间隔复习 — SM-2 算法 + ReviewCard CRUD + 评分 API ✅ |
 | 2026-06-05 | Step 13 | 自动出题 — AI 基于文档生成测验题 (QuizAgent) ✅ |
 | 2026-06-05 | 审计 | 全量代码审计: 修复 3 个问题 (Quiz注释 + threshold + milestone_order) ✅ |
-| 2026-06-05 | Step 14 | 知识图谱 — Concept CRUD + Relations + Graph API + 45 个测试 ✅ |
+| 2026-06-05 | Step 15 | 动态计划调整 — SchedulerAgent + POST /goals/{id}/schedule + 12 个测试 ✅ |
 
 ### 🔄 进行中
 
@@ -167,7 +167,7 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 15 | 动态计划调整 (SchedulerAgent) — 检测进度落后 → 自动重排 |
+| Step 16 | 学习仪表盘 — 热力图、连续天数、AI 每周洞察 |
 
 ### 💡 待办改进
 

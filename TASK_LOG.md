@@ -23,6 +23,7 @@
 | Step 12 | [step_12_sm2_review.md](task_logs/step_12_sm2_review.md) | 2026-06-05 | ✅ |
 | Step 13 | [step_13_quiz_agent.md](task_logs/step_13_quiz_agent.md) | 2026-06-05 | ✅ |
 | Step 14 | [step_14_knowledge_graph.md](task_logs/step_14_knowledge_graph.md) | 2026-06-05 | ✅ |
+| Step 15 | [step_15_scheduler_agent.md](task_logs/step_15_scheduler_agent.md) | 2026-06-05 | ✅ |
 
 ---
 
@@ -45,12 +46,10 @@ task_logs/
 
 ## 当前会话
 
-**Step 14 — 知识图谱 (ConceptRelation CRUD + Graph API)**:
-- ✅ Concepts CRUD + Relations API (8 个端点)
-- ✅ Graph 可视化 API (GET /graph + GET /graph/stats)
-- ✅ 45 个新测试，全量 202/202 通过
-- ✅ Bug 修复: Concept passive_deletes 级联删除
-- ✅ 文档更新: PRD + API 中英文
+**Step 14** ✅ + **Step 15** ✅:
+- Step 14: 知识图谱 — Concepts CRUD + Relations API + Graph API (45 tests)
+- Step 15: SchedulerAgent — AI 进度分析 + 动态重排 (12 tests)
+- 全量: 214/214 通过
 
 ---
 
