@@ -20,6 +20,7 @@
 | Step 9 | [step_09_document_upload.md](task_logs/step_09_document_upload.md) | 2026-06-04 | ✅ |
 | Step 10 | [step_10_vector_embedding.md](task_logs/step_10_vector_embedding.md) | 2026-06-05 | ✅ |
 | Step 11 | [step_11_rag_qa.md](task_logs/step_11_rag_qa.md) | 2026-06-05 | ✅ |
+| Step 12 | [step_12_sm2_review.md](task_logs/step_12_sm2_review.md) | 2026-06-05 | ✅ |
 
 ---
 
@@ -42,11 +43,26 @@ task_logs/
 
 ## 当前会话
 
-_无进行中会话（Step 11 已完成，等待开始 Step 12）_
+_无进行中会话（Step 12 已完成，等待开始 Step 13）_
 
 ---
 
-## 2026-06-05 会话结束 (Step 11)
+## 2026-06-05 会话结束 (Step 12)
+
+**完成的工作**:
+- ✅ Step 12 间隔复习完整实现: 5 个新文件 + 2 个修改文件
+- ✅ SM-2 算法: calculate_sm2() + is_card_due() 纯函数（含 9 个单元测试）
+- ✅ ReviewCard CRUD: POST/GET/PUT/DELETE /review-cards + 到期过滤 (overdue/today)
+- ✅ 复习评分: POST /review-cards/{id}/review (SM-2 核心端点)
+- ✅ PRD 中英文更新 (补充 §2.3.3 间隔复习详情)
+- ✅ API 文档中英文更新 (新增 §3.6 间隔复习模块)
+- ✅ 全量测试: 145/145 全部通过 (+34 SM-2 测试)
+
+**结束位置**: Step 12 全部完成 ✅，Step 13 (自动出题 QuizAgent) 待开始
+**分支**: feature/step-10-vector-embedding
+**Docker 服务**: 全部 running
+**下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
+**下一步**: Step 13 — 自动出题 (QuizAgent)
 
 **完成的工作**:
 - ✅ Step 11 RAG 问答完整实现: 5 个新文件 + 2 个修改文件

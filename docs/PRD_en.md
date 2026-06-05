@@ -41,7 +41,7 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 | 3 | Task Management (CRUD) | ✅ Complete | P0 | Phase 1 |
 | 4 | AI Learning Plan Generation (PlannerAgent) | 🔄 In Progress | P0 | Phase 1 |
 | 5 | Knowledge Base RAG Q&A (DigestAgent) | 🔄 In Progress | P1 | Phase 2 |
-| 6 | Spaced Repetition (SM-2 Algorithm) | 📋 Planned | P1 | Phase 2 |
+| 6 | Spaced Repetition (SM-2 Algorithm) | 🔄 In Progress | P1 | Phase 2 |
 | 7 | Auto Quiz Generation (QuizAgent) | 📋 Planned | P2 | Phase 2 |
 | 8 | Knowledge Graph Visualization | 📋 Planned | P2 | Phase 3 |
 | 9 | Dynamic Schedule Adjustment (SchedulerAgent) | 📋 Planned | P2 | Phase 3 |
@@ -132,9 +132,24 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 - LLM: ChatOpenAI + with_structured_output (ensures correct answer + citation format)
 - Model: gpt-4o-mini (lightweight model, sufficient quality for RAG scenarios)
 
-#### 2.3.3 Spaced Repetition (Step 10+)
+#### 2.3.3 Spaced Repetition (Step 12 - Current)
 
-**Description**: Based on SM-2 algorithm, automatically calculate next review time from user feedback (forgetting degree).
+**Description**: Based on the SM-2 (SuperMemo 2) spaced repetition algorithm, automatically calculate next review time from user feedback (forgetting degree rating 0-5). Implements full review card CRUD + rating API.
+
+**SM-2 Algorithm Flow**:
+1. User rates a card (0-5): 0=complete blackout, 5=perfect recall
+2. Calculate new ease_factor: `EF' = EF + (0.1 - (5-q) × (0.08 + (5-q) × 0.02))`, minimum 1.3
+3. Rating >= 3 (correct): repetitions+1, calculate new interval by formula
+4. Rating < 3 (forgotten): reset repetitions=0, interval=1 day
+5. Update next_review_at = now + interval days
+
+**API Endpoints**:
+- `GET /review-cards` — List (with overdue/today filter)
+- `POST /review-cards` — Create card
+- `GET /review-cards/{id}` — Card detail
+- `PUT /review-cards/{id}` — Update content
+- `DELETE /review-cards/{id}` — Delete card
+- `POST /review-cards/{id}/review` — Submit review rating (core SM-2 endpoint)
 
 #### 2.3.4 Auto Quiz Generation (Step 11+)
 

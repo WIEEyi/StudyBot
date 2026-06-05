@@ -672,7 +672,48 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.6 Knowledge Graph Module (Step 12+)
+### 3.6 Spaced Repetition Module (Review Cards) — Step 12 🔄 In Progress
+
+#### POST /api/v1/review-cards — Create Review Card
+#### GET /api/v1/review-cards — List Review Cards (filter: overdue/today)
+#### GET /api/v1/review-cards/{card_id} — Card Detail
+#### PUT /api/v1/review-cards/{card_id} — Update Card Content
+#### DELETE /api/v1/review-cards/{card_id} — Delete Card
+
+#### POST /api/v1/review-cards/{card_id}/review — Submit Review Rating 🔑
+
+**Description**: After user rates a card (0-5), SM-2 algorithm automatically updates ease_factor, interval, repetitions, and next_review_at. This is the core endpoint of spaced repetition.
+
+**Request Body**:
+```json
+{ "rating": 4 }
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| rating | integer (0-5) | Yes | Recall quality: 0=blackout, 5=perfect |
+
+**Success Response** (200):
+```json
+{
+  "id": 1,
+  "rating": 4,
+  "previous_interval": 6,
+  "new_interval": 15,
+  "ease_factor": 2.5,
+  "repetitions": 2,
+  "next_review_at": "2026-06-20T10:00:00Z"
+}
+```
+
+**SM-2 Algorithm Rules**:
+1. Rating >= 3: repetitions+1. 1st interval=1d, 2nd=6d, 3rd+=interval×ease_factor
+2. Rating < 3: repetitions=0, interval=1d (restart)
+3. ease_factor adjusted: EF' = EF + (0.1 - (5-q) × (0.08 + (5-q) × 0.02)), minimum 1.3
+
+---
+
+### 3.7 Knowledge Graph Module (Step 14+)
 
 #### GET /api/v1/concepts — List Concepts
 #### POST /api/v1/concepts — Create Concept

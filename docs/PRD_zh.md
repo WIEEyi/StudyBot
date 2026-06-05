@@ -41,7 +41,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | 3 | 任务管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
 | 4 | AI 学习计划生成 (PlannerAgent) | 🔄 待开发 | P0 | Phase 1 |
 | 5 | 知识库 RAG 问答 (DigestAgent) | 🔄 开发中 | P1 | Phase 2 |
-| 6 | 间隔复习 (SM-2 算法) | 📋 规划中 | P1 | Phase 2 |
+| 6 | 间隔复习 (SM-2 算法) | 🔄 开发中 | P1 | Phase 2 |
 | 7 | 自动出题 (QuizAgent) | 📋 规划中 | P2 | Phase 2 |
 | 8 | 知识图谱可视化 | 📋 规划中 | P2 | Phase 3 |
 | 9 | 动态计划调整 (SchedulerAgent) | 📋 规划中 | P2 | Phase 3 |
@@ -132,14 +132,37 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 - LLM: ChatOpenAI + with_structured_output（确保答案 + 引用格式正确）
 - 模型: gpt-4o-mini（轻量模型，RAG 场景下质量已足够）
 
-#### 2.3.3 间隔复习 (Step 10+)
+#### 2.3.3 间隔复习 (Step 12 - 当前步骤)
 
-**功能描述**: 基于 SM-2 算法，根据用户的复习反馈（遗忘程度）自动计算下次复习时间。
+**功能描述**: 基于 SM-2（SuperMemo 2）间隔重复算法，根据用户的复习反馈（遗忘程度评分 0-5）自动计算下次复习时间。实现完整的复习卡片 CRUD + 评分 API。
+
+**SM-2 算法流程**:
+1. 用户对卡片评分 (0-5)：0=完全忘记, 5=完美回忆
+2. 计算新的 ease_factor：`EF' = EF + (0.1 - (5-q) × (0.08 + (5-q) × 0.02))`，下限 1.3
+3. 评分 >= 3（正确）: repetitions+1, 按公式计算新 interval
+4. 评分 < 3（遗忘）: 重置 repetitions=0, interval=1天
+5. 更新 next_review_at = now + interval 天
+
+**输入**:
+- 复习卡片 (front/back): 正面问题 + 背面答案
+- 评分 (0-5): 用户对自己回忆程度的评价
 
 **核心逻辑**:
-- 用户对复习卡片评分（0-5）
-- SM-2 算法调整 ease_factor、interval、repetitions
-- 系统自动提醒到期复习的卡片
+- `q >= 3`: repetitions++, interval 递增 (1→6→×EF→×EF...)
+- `q < 3`: repetitions=0, interval=1（从零开始）
+- ease_factor 动态调整: 连续正确→升高（间隔拉长），连续错误→降低到 1.3（最小间隔）
+- next_review_at = 当前时间 + interval 天
+
+**输出**:
+- 更新后的卡片（含新的 ease_factor、interval、repetitions、next_review_at）
+
+**API 端点**:
+- `GET /review-cards` — 列表（支持 overdue/today 过滤）
+- `POST /review-cards` — 创建卡片
+- `GET /review-cards/{id}` — 卡片详情
+- `PUT /review-cards/{id}` — 更新内容
+- `DELETE /review-cards/{id}` — 删除卡片
+- `POST /review-cards/{id}/review` — 提交复习评分（核心 SM-2 端点）
 
 #### 2.3.4 自动出题 (Step 11+)
 

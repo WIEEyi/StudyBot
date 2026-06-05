@@ -803,7 +803,114 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.6 知识图谱模块 (Step 12+)
+### 3.6 间隔复习模块 (Review Cards) — Step 12 🔄 开发中
+
+#### POST /api/v1/review-cards — 创建复习卡片
+
+**描述**: 手动创建一张复习卡片（正面问题 + 背面答案），SM-2 参数初始化为默认值。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**请求体**:
+```json
+{
+  "front": "Python 中的 GIL 是什么？",
+  "back": "GIL（全局解释器锁）是 CPython 的一个机制..."
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| front | string (1-2000) | 是 | 卡片正面（问题/提示） |
+| back | string (1-5000) | 是 | 卡片背面（答案） |
+| document_id | integer | 否 | 关联的文档 ID |
+
+**成功响应** (201):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "front": "Python 中的 GIL 是什么？",
+  "back": "GIL（全局解释器锁）是 CPython 的一个机制...",
+  "source": "manual",
+  "ease_factor": 2.5,
+  "interval": 0,
+  "repetitions": 0,
+  "next_review_at": null,
+  "last_reviewed_at": null,
+  "created_at": "2026-06-05T10:00:00Z"
+}
+```
+
+---
+
+#### GET /api/v1/review-cards — 复习卡片列表
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| due_filter | string | 否 | - | `overdue`(已过期), `today`(今天到期), `all` |
+| source | string | 否 | - | `manual`, `ai_generated` |
+| offset | integer | 否 | 0 | 分页偏移 |
+| limit | integer | 否 | 20 | 每页数量（最大 100） |
+
+---
+
+#### GET /api/v1/review-cards/{card_id} — 卡片详情
+
+同上响应格式。
+
+---
+
+#### PUT /api/v1/review-cards/{card_id} — 更新卡片内容
+
+更新 front/back 字段，不影响 SM-2 参数。
+
+---
+
+#### DELETE /api/v1/review-cards/{card_id} — 删除卡片
+
+返回 204。
+
+---
+
+#### POST /api/v1/review-cards/{card_id}/review — 提交复习评分 🔑
+
+**描述**: 用户对卡片评分后，SM-2 算法自动更新 ease_factor、interval、repetitions、next_review_at。这是间隔复习的核心端点。
+
+**请求体**:
+```json
+{
+  "rating": 4
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| rating | integer (0-5) | 是 | 回忆质量评分: 0=完全忘记, 1=几乎忘记, 2=勉强回忆, 3=正确但有困难, 4=正确, 5=完美 |
+
+**成功响应** (200):
+```json
+{
+  "id": 1,
+  "rating": 4,
+  "previous_interval": 6,
+  "new_interval": 15,
+  "ease_factor": 2.5,
+  "repetitions": 2,
+  "next_review_at": "2026-06-20T10:00:00Z"
+}
+```
+
+**SM-2 算法规则**:
+1. 评分 >= 3: repetitions+1。第1次 interval=1天，第2次=6天，第3次起=interval×ease_factor
+2. 评分 < 3: repetitions=0, interval=1天（重新开始）
+3. ease_factor 动态调整: EF' = EF + (0.1 - (5-q) × (0.08 + (5-q) × 0.02))，不低于 1.3
+
+---
+
+### 3.7 知识图谱模块 (Step 14+)
 
 #### GET /api/v1/concepts — 概念列表
 #### POST /api/v1/concepts — 创建概念
