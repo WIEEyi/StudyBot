@@ -42,7 +42,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | 4 | AI 学习计划生成 (PlannerAgent) | 🔄 待开发 | P0 | Phase 1 |
 | 5 | 知识库 RAG 问答 (DigestAgent) | 🔄 开发中 | P1 | Phase 2 |
 | 6 | 间隔复习 (SM-2 算法) | 🔄 开发中 | P1 | Phase 2 |
-| 7 | 自动出题 (QuizAgent) | 📋 规划中 | P2 | Phase 2 |
+| 7 | 自动出题 (QuizAgent) | 🔄 开发中 | P2 | Phase 2 |
 | 8 | 知识图谱可视化 | 📋 规划中 | P2 | Phase 3 |
 | 9 | 动态计划调整 (SchedulerAgent) | 📋 规划中 | P2 | Phase 3 |
 | 10 | 学习仪表盘 | 📋 规划中 | P2 | Phase 3 |
@@ -164,7 +164,24 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 - `DELETE /review-cards/{id}` — 删除卡片
 - `POST /review-cards/{id}/review` — 提交复习评分（核心 SM-2 端点）
 
-#### 2.3.4 自动出题 (Step 11+)
+#### 2.3.4 自动出题 (Step 13 - 当前步骤)
+
+**功能描述**: 基于用户上传的学习材料（文档），AI 自动生成测验题目。支持选择题（4 选项）、判断题和简答题。使用 QuizAgent (LangGraph) 编排出题流程。
+
+**输入**: document_id + 题目数量（默认 5 道）
+**输出**: 生成的测验题目列表（question + options + correct_answer + explanation）
+
+**QuizAgent 工作流**:
+1. load_document: 加载文档内容/chunks
+2. generate_quizzes: 调用 LLM (gpt-4o-mini) 基于文档内容生成题目
+3. save_quizzes: 批量存入数据库
+
+**边界条件**:
+- 文档内容为空 → 返回 422 "文档没有可提取的内容"
+- 文档不存在/无权限 → 404/403
+- LLM 调用失败 → 500 优雅降级
+
+**API**: POST /quizzes/generate | GET /quizzes | GET /quizzes/{id} | DELETE /quizzes/{id}
 
 **功能描述**: 基于用户的学习材料，AI 自动生成测验题目（选择题、判断题、简答题）。
 

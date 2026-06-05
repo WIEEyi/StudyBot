@@ -21,6 +21,7 @@
 | Step 10 | [step_10_vector_embedding.md](task_logs/step_10_vector_embedding.md) | 2026-06-05 | ✅ |
 | Step 11 | [step_11_rag_qa.md](task_logs/step_11_rag_qa.md) | 2026-06-05 | ✅ |
 | Step 12 | [step_12_sm2_review.md](task_logs/step_12_sm2_review.md) | 2026-06-05 | ✅ |
+| Step 13 | [step_13_quiz_agent.md](task_logs/step_13_quiz_agent.md) | 2026-06-05 | ✅ |
 
 ---
 
@@ -43,26 +44,27 @@ task_logs/
 
 ## 当前会话
 
-_无进行中会话（Step 12 已完成，等待开始 Step 13）_
+_无进行中会话（Step 13 已完成，等待开始 Step 14）_
 
 ---
 
-## 2026-06-05 会话结束 (Step 12)
+## 2026-06-05 会话结束 (Step 13)
 
 **完成的工作**:
-- ✅ Step 12 间隔复习完整实现: 5 个新文件 + 2 个修改文件
-- ✅ SM-2 算法: calculate_sm2() + is_card_due() 纯函数（含 9 个单元测试）
-- ✅ ReviewCard CRUD: POST/GET/PUT/DELETE /review-cards + 到期过滤 (overdue/today)
-- ✅ 复习评分: POST /review-cards/{id}/review (SM-2 核心端点)
-- ✅ PRD 中英文更新 (补充 §2.3.3 间隔复习详情)
-- ✅ API 文档中英文更新 (新增 §3.6 间隔复习模块)
-- ✅ 全量测试: 145/145 全部通过 (+34 SM-2 测试)
+- ✅ Step 13 自动出题完整实现: 5 个新文件 + 2 个修改文件
+- ✅ QuizAgent LangGraph 工作流 (load_document → generate_quizzes → save_quizzes)
+- ✅ API: POST /quizzes/generate + GET /quizzes + GET /quizzes/{id} + DELETE /quizzes/{id}
+- ✅ LLM 结构化输出: 支持选择题(multiple_choice) + 判断题(true_false) + 简答题(short_answer)
+- ✅ PRD 中英文更新 (§2.3.4 自动出题)
+- ✅ 全量测试: 157/157 全部通过 (+12 Quiz 测试)
+- ✅ Docker 服务全部 running
 
-**结束位置**: Step 12 全部完成 ✅，Step 13 (自动出题 QuizAgent) 待开始
+**当日累计**: Step 11 (RAG) + Step 12 (SM-2) + Step 13 (QuizAgent) 三个步骤全部完成
+**结束位置**: Step 13 全部完成 ✅，Step 14 (知识图谱) 待开始
 **分支**: feature/step-10-vector-embedding
 **Docker 服务**: 全部 running
 **下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
-**下一步**: Step 13 — 自动出题 (QuizAgent)
+**下一步**: Step 14 — 知识图谱 (概念关系可视化)
 
 **完成的工作**:
 - ✅ Step 11 RAG 问答完整实现: 5 个新文件 + 2 个修改文件

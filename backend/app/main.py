@@ -98,6 +98,7 @@ from app.api.v1.documents import router as documents_router
 from app.api.v1.search import router as search_router
 from app.api.v1.qa import router as qa_router
 from app.api.v1.review_cards import router as review_cards_router
+from app.api.v1.quizzes import router as quizzes_router
 from app.api.v1.ws import websocket_plan
 
 app.include_router(auth_router, prefix="/api/v1")
@@ -108,6 +109,7 @@ app.include_router(documents_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(qa_router, prefix="/api/v1")
 app.include_router(review_cards_router, prefix="/api/v1")
+app.include_router(quizzes_router, prefix="/api/v1")
 
 # WebSocket 端点（不支持 include_router，需直接注册到 app）
 app.websocket("/api/v1/ws/plan")(websocket_plan)
