@@ -16,6 +16,9 @@
 | Step 5 | [step_05_jwt_auth.md](task_logs/step_05_jwt_auth.md) | 2026-06-01 | ✅ |
 | Step 6 | [step_06_models_migration.md](task_logs/step_06_models_migration.md) | 2026-06-01 | ✅ |
 | Step 7 | [step_07_goals_tasks_crud.md](task_logs/step_07_goals_tasks_crud.md) | 2026-06-02 | ✅ |
+| Step 8 | [step_08_planner_agent.md](task_logs/step_08_planner_agent.md) | 2026-06-02 | ✅ |
+| Step 9 | [step_09_document_upload.md](task_logs/step_09_document_upload.md) | 2026-06-04 | ✅ |
+| Step 10 | [step_10_vector_embedding.md](task_logs/step_10_vector_embedding.md) | 2026-06-05 | ✅ |
 
 ---
 
@@ -38,7 +41,28 @@ task_logs/
 
 ## 当前会话
 
-_无进行中会话（Step 7 已完成，等待开始 Step 8）_
+_无进行中会话（Step 10 已完成，等待开始 Step 11）_
+
+---
+
+## 2026-06-05 会话结束
+
+**完成的工作**:
+- ✅ Step 10 向量嵌入完整实现: 7 个新文件 + 7 个修改文件
+- ✅ DocumentChunk ORM 模型 (VECTOR(1536)) + embedding_service (chunk/embed/process/search)
+- ✅ API: POST /documents/{id}/embed + GET /documents/{id}/chunks + POST /api/v1/search
+- ✅ Alembic 迁移: CREATE EXTENSION vector + 建表 + HNSW 索引
+- ✅ 修复 tasks.py milestone 字段创建支持
+- ✅ Dockerfile pip 清华镜像加速
+- ✅ 全量测试: 99/99 全部通过（Step 7: 43 + Step 8: 13 + Step 9: 22 + Step 10: 21）
+- ✅ 已推送到 GitHub: feature/step-10-vector-embedding
+- ✅ 代理问题诊断: 公司代理 (10.128.53.177/10.127.78.167) vs 校园网直连
+
+**结束位置**: Step 10 全部完成 ✅，Step 11 (RAG 问答 / DigestAgent) 待开始
+**分支**: feature/step-10-vector-embedding（已推送）
+**Docker 服务**: 全部 running
+**下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
+**下一步**: Step 11 — RAG 问答 (DigestAgent)
 
 ---
 

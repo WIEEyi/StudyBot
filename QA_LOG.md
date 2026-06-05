@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-06-05
+
+### Q: Git push 代理连接失败？
+
+**问题**: `git push` 到 GitHub 时报 `Failed to connect to github.com port 443 via 10.127.78.167`
+
+**回答**: 代理 IP `10.127.78.167:8890` 和 `10.128.53.177:8890` 是公司内网代理，在校园网环境下不可达。校园网应直连 GitHub，去掉代理即可：
+```bash
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+```
+
+### Q: Docker 构建时 pip 安装包 SSL 错误？
+
+**回答**: Docker 容器内访问 PyPI 被墙，在 Dockerfile 中使用清华镜像：
+```dockerfile
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+```
+
+---
+
 ## 2026-05-31
 
 ### Q1: `__init__.py` 文件的作用是什么？
