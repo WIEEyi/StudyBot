@@ -17,7 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 先只复制依赖文件，利用 Docker 层缓存（代码改了不用重新 pip install）
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 使用清华 PyPI 镜像加速国内下载
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # 暴露 FastAPI 端口
 EXPOSE 8000

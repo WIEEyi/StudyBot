@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.models.learning_goal import LearningGoal
     from app.models.task import Task
     from app.models.document import Document
+    from app.models.document_chunk import DocumentChunk
     from app.models.review_card import ReviewCard
     from app.models.quiz import Quiz
     from app.models.concept import Concept
@@ -51,6 +52,7 @@ class User(Base, TimestampMixin):
     goals: Mapped[List["LearningGoal"]] = relationship("LearningGoal", back_populates="user")
     tasks: Mapped[List["Task"]] = relationship("Task", back_populates="user")
     documents: Mapped[List["Document"]] = relationship("Document", back_populates="user")
+    document_chunks: Mapped[List["DocumentChunk"]] = relationship("DocumentChunk", back_populates="user")
     review_cards: Mapped[List["ReviewCard"]] = relationship("ReviewCard", back_populates="user")
     quizzes: Mapped[List["Quiz"]] = relationship("Quiz", back_populates="user")
     concepts: Mapped[List["Concept"]] = relationship("Concept", back_populates="user")

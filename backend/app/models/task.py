@@ -54,6 +54,8 @@ class Task(Base, TimestampMixin):
     )
     # 预估耗时（分钟）
     estimated_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # 里程碑名称（AI 生成计划时用于分组，如"阶段一：Python 基础"）
+    milestone: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     # --- 关系 ---
     user: Mapped["User"] = relationship("User", back_populates="tasks")

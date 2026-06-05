@@ -590,22 +590,153 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.2 知识库模块 (Step 9-11)
+### 3.2 文档管理模块 (Documents) — Step 9 ✅ 已完成
 
-#### POST /api/v1/documents — 上传文档
-#### GET /api/v1/documents — 文档列表
-#### GET /api/v1/documents/{id} — 文档详情
-#### DELETE /api/v1/documents/{id} — 删除文档
-#### POST /api/v1/qa/ask — RAG 问答
-#### GET /api/v1/review-cards — 复习卡片列表
-#### POST /api/v1/review-cards — 创建复习卡片
-#### PATCH /api/v1/review-cards/{id}/review — 提交复习评分
-#### POST /api/v1/quizzes/generate — AI 自动出题
-#### GET /api/v1/quizzes — 测验列表
+接口详情见 [2.5 文档模块](#待补充)
 
 ---
 
-### 3.3 知识图谱模块 (Step 12+)
+### 3.3 文档向量化模块 (Embedding) — Step 10 ✅ 已完成
+
+#### POST /api/v1/documents/{document_id}/embed — 触发文档分块 + 向量嵌入
+
+**描述**: 对已上传文档的文本内容进行分块和向量化，存入 pgvector。幂等操作，重复调用会删除旧分块后重新生成。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| document_id | integer | 文档 ID |
+
+**成功响应** (200):
+```json
+{
+  "document_id": 1,
+  "chunks_created": 12
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `403` — 文档不属于当前用户
+- `404` — 文档不存在
+- `422` — 文档内容为空，无法生成嵌入向量
+- `500` — OpenAI API 调用失败
+
+**业务规则**:
+1. 分块策略: RecursiveCharacterTextSplitter, chunk_size=500 tokens, chunk_overlap=50 tokens
+2. 向量维度: text-embedding-3-small = 1536 维
+3. 文档上传后自动触发嵌入（失败时优雅降级，不阻塞上传）
+
+---
+
+#### GET /api/v1/documents/{document_id}/chunks — 获取文档分块列表
+
+**描述**: 分页获取文档的所有分块（**不含** embedding 向量字段，向量仅用于服务端相似度计算）。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| document_id | integer | 文档 ID |
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| offset | integer | 否 | 0 | 分页偏移量 |
+| limit | integer | 否 | 50 | 每页条数（最大 200） |
+
+**成功响应** (200):
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "document_id": 1,
+      "chunk_index": 0,
+      "content": "第一章 Python基础...",
+      "token_count": 350,
+      "created_at": "2026-06-05T10:00:00Z",
+      "updated_at": "2026-06-05T10:00:00Z"
+    }
+  ],
+  "total": 12,
+  "offset": 0,
+  "limit": 50
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `403` — 文档不属于当前用户
+- `404` — 文档不存在
+
+---
+
+### 3.4 语义搜索模块 (Search) — Step 10 ✅ 已完成
+
+#### POST /api/v1/search — 语义搜索
+
+**描述**: 将查询文本向量化后，在用户所有文档分块中执行余弦相似度搜索，返回最相关的分块及相似度分数。Step 11 将在此基础上增加 AI 答案生成（RAG）。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**请求体**:
+```json
+{
+  "query": "Python 中如何实现异步编程",
+  "top_k": 5,
+  "threshold": 0.3
+}
+```
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| query | string (1-1000) | 是 | - | 自然语言搜索词 |
+| top_k | integer (1-50) | 否 | 5 | 返回的最相关分块数量 |
+| threshold | float (0.0-1.0) | 否 | 0.3 | 最低余弦相似度阈值 |
+
+**成功响应** (200):
+```json
+{
+  "query": "Python 中如何实现异步编程",
+  "results": [
+    {
+      "chunk_id": 5,
+      "document_id": 1,
+      "document_title": "Python 学习笔记",
+      "chunk_index": 4,
+      "content": "Python 的异步编程主要基于 asyncio 库...",
+      "similarity": 0.8542,
+      "token_count": 480
+    }
+  ],
+  "total": 1
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| similarity | 余弦相似度 (0-1)，1 表示完全匹配 |
+
+**错误响应**:
+- `401` — 未认证
+- `422` — query 为空或超过 1000 字符、top_k 超出范围
+- `500` — OpenAI API 调用失败
+
+**业务规则**:
+1. 搜索范围仅限当前用户自己的文档分块
+2. 使用 pgvector HNSW 索引加速向量搜索
+3. 结果按相似度降序排列
+
+---
+
+### 3.5 知识图谱模块 (Step 12+)
 
 #### GET /api/v1/concepts — 概念列表
 #### POST /api/v1/concepts — 创建概念

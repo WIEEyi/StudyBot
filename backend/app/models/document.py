@@ -11,6 +11,7 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.document_chunk import DocumentChunk
 
 
 class Document(Base, TimestampMixin):
@@ -36,6 +37,9 @@ class Document(Base, TimestampMixin):
 
     # --- 关系 ---
     user: Mapped["User"] = relationship("User", back_populates="documents")
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Document(id={self.id}, title={self.title}, type={self.file_type})>"

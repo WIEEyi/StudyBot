@@ -20,6 +20,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import uuid
+import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -117,3 +118,37 @@ def test_user():
         "username": SHARED_USERNAME,
         "password": SHARED_PASSWORD,
     }
+
+
+# ===================== Mock Embedding Service =====================
+
+@pytest.fixture(autouse=True)
+def mock_embedding_service(monkeypatch):
+    """全局 mock embedding service，避免测试中调用真实 OpenAI API
+
+    用确定性的随机向量替换 embed_chunks 和 embed_query。
+    seed(42) 确保每次测试运行得到相同的"随机"向量。
+    """
+    import random
+
+    random.seed(42)
+
+    async def mock_embed_chunks(texts, settings=None):
+        """返回确定性的随机 1536 维向量"""
+        return [[random.random() for _ in range(1536)] for _ in texts]
+
+    async def mock_embed_query(query):
+        """返回确定性的随机 1536 维向量"""
+        return [random.random() for _ in range(1536)]
+
+    # Mock 在 embedding_service 模块级别的函数（而非 langchain_openai 类）
+    monkeypatch.setattr(
+        "app.services.embedding_service.embed_chunks", mock_embed_chunks
+    )
+    monkeypatch.setattr(
+        "app.services.embedding_service.embed_query", mock_embed_query
+    )
+    # 同时 mock search.py 中已导入的引用（模块级 import 绕过了 service 层的 patch）
+    monkeypatch.setattr(
+        "app.api.v1.search.embed_query", mock_embed_query
+    )

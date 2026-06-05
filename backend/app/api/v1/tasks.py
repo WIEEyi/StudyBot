@@ -165,6 +165,7 @@ async def create_task(
         description=request.description,
         priority=request.priority,
         due_date=request.due_date,
+        milestone=request.milestone,
         estimated_minutes=request.estimated_minutes,
     )
     db.add(task)
