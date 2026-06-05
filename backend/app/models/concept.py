@@ -38,12 +38,15 @@ class Concept(Base, TimestampMixin):
     # --- 关系 ---
     user: Mapped["User"] = relationship("User", back_populates="concepts")
     # 以本概念为源的关系
+    # passive_deletes=True: 告诉 SQLAlchemy 数据库有 ON DELETE CASCADE，删除概念时不要尝试 SET NULL
     outgoing_relations: Mapped[List["ConceptRelation"]] = relationship(
-        "ConceptRelation", foreign_keys="ConceptRelation.source_id", back_populates="source"
+        "ConceptRelation", foreign_keys="ConceptRelation.source_id",
+        back_populates="source", passive_deletes=True,
     )
     # 以本概念为目标的关系
     incoming_relations: Mapped[List["ConceptRelation"]] = relationship(
-        "ConceptRelation", foreign_keys="ConceptRelation.target_id", back_populates="target"
+        "ConceptRelation", foreign_keys="ConceptRelation.target_id",
+        back_populates="target", passive_deletes=True,
     )
 
     def __repr__(self) -> str:

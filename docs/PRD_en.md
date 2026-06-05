@@ -43,7 +43,7 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 | 5 | Knowledge Base RAG Q&A (DigestAgent) | 🔄 In Progress | P1 | Phase 2 |
 | 6 | Spaced Repetition (SM-2 Algorithm) | 🔄 In Progress | P1 | Phase 2 |
 | 7 | Auto Quiz Generation (QuizAgent) | 📋 Planned | P2 | Phase 2 |
-| 8 | Knowledge Graph Visualization | 📋 Planned | P2 | Phase 3 |
+| 8 | Knowledge Graph Visualization | ✅ Completed | P2 | Phase 3 |
 | 9 | Dynamic Schedule Adjustment (SchedulerAgent) | 📋 Planned | P2 | Phase 3 |
 | 10 | Learning Dashboard | 📋 Planned | P2 | Phase 3 |
 
@@ -155,9 +155,25 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 
 **Description**: Based on user's learning materials, AI auto-generates quiz questions (multiple choice, true/false, short answer).
 
-#### 2.3.5 Knowledge Graph (Step 12+)
+#### 2.3.5 Knowledge Graph (Step 14) ✅
 
 **Description**: Visualize concepts and their relationships (prerequisite/related/part_of) as a knowledge graph.
+
+**Concept CRUD**:
+- Create/view/update/delete concept nodes
+- 5 categories: subject, topic, subtopic, term, other
+- Filter by category and fuzzy search by name
+
+**Concept Relations**:
+- Create/delete directed relations between concepts
+- 3 relation types: prerequisite, related, part_of
+- Duplicate prevention: same type relation between same pair cannot be created twice
+- Self-reference prevention: cannot create relation pointing to itself
+- Cascade delete: deleting a concept automatically removes all its relations
+
+**Graph Visualization API**:
+- `GET /graph` — Returns complete graph data (nodes + edges), ready for D3.js/Cytoscape.js rendering
+- `GET /graph/stats` — Returns statistics (by category / by relation type)
 
 #### 2.3.6 Dynamic Schedule Adjustment (Step 13+)
 

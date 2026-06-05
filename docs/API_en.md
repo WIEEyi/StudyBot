@@ -713,12 +713,211 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.7 Knowledge Graph Module (Step 14+)
+### 3.7 Knowledge Graph Module (Concepts + Graph) — Step 14 ✅ Completed
 
-#### GET /api/v1/concepts — List Concepts
+#### GET /api/v1/concepts — List Concepts (paginated)
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| category | string | No | - | Filter: `subject`, `topic`, `subtopic`, `term`, `other` |
+| search | string | No | - | Fuzzy search by name (case-insensitive) |
+| offset | integer | No | 0 | Pagination offset |
+| limit | integer | No | 20 | Items per page (max 100) |
+
+**Success Response** (200):
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Python",
+      "description": "Python programming language",
+      "category": "topic",
+      "relation_count": 3,
+      "created_at": "2026-06-05T10:00:00Z",
+      "updated_at": "2026-06-05T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+---
+
 #### POST /api/v1/concepts — Create Concept
-#### POST /api/v1/concepts/{id}/relations — Create Concept Relation
-#### GET /api/v1/graph — Get Knowledge Graph Data
+
+**Request Body**:
+```json
+{
+  "name": "Python",
+  "description": "Python programming language basics",
+  "category": "topic"
+}
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| name | string (1-255) | Yes | - | Concept name |
+| description | string | No | - | Concept description |
+| category | string | No | topic | subject/topic/subtopic/term/other |
+
+**Success Response** (201): Same as concept response object
+
+**Error Responses**:
+- `422` — Invalid category, empty name, or name too long
+
+---
+
+#### GET /api/v1/concepts/{concept_id} — Get Concept Detail (with relations)
+
+**Success Response** (200):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "name": "Python",
+  "description": "Python programming language",
+  "category": "topic",
+  "relation_count": 2,
+  "outgoing_relations": [
+    {
+      "id": 1,
+      "source_id": 1,
+      "target_id": 2,
+      "relation_type": "prerequisite",
+      "source_name": "Python",
+      "target_name": "Django",
+      "created_at": "2026-06-05T10:00:00Z"
+    }
+  ],
+  "incoming_relations": [],
+  "created_at": "2026-06-05T10:00:00Z",
+  "updated_at": "2026-06-05T10:00:00Z"
+}
+```
+
+**Error Responses**:
+- `403` — Concept does not belong to current user
+- `404` — Concept not found
+
+---
+
+#### PUT /api/v1/concepts/{concept_id} — Update Concept
+
+**Request Body** (all fields optional):
+```json
+{
+  "name": "Advanced Python",
+  "description": "Updated description",
+  "category": "topic"
+}
+```
+
+**Success Response** (200): Same as concept response object
+
+---
+
+#### DELETE /api/v1/concepts/{concept_id} — Delete Concept
+
+Cascade deletes all associated relations.
+
+**Success Response** (204): No response body
+
+---
+
+#### POST /api/v1/concepts/{concept_id}/relations — Create Concept Relation
+
+Creates a directed relation from the current concept to the target concept.
+
+**Request Body**:
+```json
+{
+  "target_id": 2,
+  "relation_type": "prerequisite"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| target_id | integer | Yes | Target concept ID |
+| relation_type | string | Yes | prerequisite / related / part_of |
+
+**Success Response** (201):
+```json
+{
+  "id": 1,
+  "source_id": 1,
+  "target_id": 2,
+  "relation_type": "prerequisite",
+  "source_name": "Python",
+  "target_name": "Django",
+  "created_at": "2026-06-05T10:00:00Z"
+}
+```
+
+**Error Responses**:
+- `404` — Source or target concept not found
+- `403` — Concept does not belong to current user
+- `409` — Same type relation already exists
+- `422` — Invalid relation type, or self-reference
+
+---
+
+#### DELETE /api/v1/concepts/{concept_id}/relations/{relation_id} — Delete Concept Relation
+
+**Success Response** (204): No response body
+
+---
+
+#### GET /api/v1/graph — Get Complete Knowledge Graph Data
+
+Returns all concepts (nodes) and relations (edges) for the current user, ready for D3.js/Cytoscape.js visualization.
+
+**Success Response** (200):
+```json
+{
+  "nodes": [
+    {
+      "id": 1,
+      "name": "Python",
+      "category": "topic",
+      "description": "Python programming language",
+      "relation_count": 2
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source_id": 1,
+      "target_id": 2,
+      "relation_type": "prerequisite",
+      "source_name": "Python",
+      "target_name": "Django"
+    }
+  ],
+  "total_nodes": 5,
+  "total_edges": 4
+}
+```
+
+---
+
+#### GET /api/v1/graph/stats — Graph Statistics
+
+**Success Response** (200):
+```json
+{
+  "total_concepts": 10,
+  "total_relations": 8,
+  "by_category": {"topic": 5, "term": 3, "subject": 2},
+  "by_relation_type": {"prerequisite": 4, "related": 3, "part_of": 1}
+}
+```
 
 ---
 

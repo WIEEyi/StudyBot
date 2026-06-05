@@ -22,6 +22,7 @@
 | Step 11 | [step_11_rag_qa.md](task_logs/step_11_rag_qa.md) | 2026-06-05 | ✅ |
 | Step 12 | [step_12_sm2_review.md](task_logs/step_12_sm2_review.md) | 2026-06-05 | ✅ |
 | Step 13 | [step_13_quiz_agent.md](task_logs/step_13_quiz_agent.md) | 2026-06-05 | ✅ |
+| Step 14 | [step_14_knowledge_graph.md](task_logs/step_14_knowledge_graph.md) | 2026-06-05 | ✅ |
 
 ---
 
@@ -44,7 +45,12 @@ task_logs/
 
 ## 当前会话
 
-_会话已终止（2026-06-05 会话结束）_
+**Step 14 — 知识图谱 (ConceptRelation CRUD + Graph API)**:
+- ✅ Concepts CRUD + Relations API (8 个端点)
+- ✅ Graph 可视化 API (GET /graph + GET /graph/stats)
+- ✅ 45 个新测试，全量 202/202 通过
+- ✅ Bug 修复: Concept passive_deletes 级联删除
+- ✅ 文档更新: PRD + API 中英文
 
 ---
 

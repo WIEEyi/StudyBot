@@ -910,12 +910,211 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.7 知识图谱模块 (Step 14+)
+### 3.7 知识图谱模块 (Concepts + Graph) — Step 14 ✅ 已完成
 
-#### GET /api/v1/concepts — 概念列表
+#### GET /api/v1/concepts — 概念列表（分页）
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| category | string | 否 | - | 过滤分类: `subject`, `topic`, `subtopic`, `term`, `other` |
+| search | string | 否 | - | 按名称模糊搜索（不区分大小写） |
+| offset | integer | 否 | 0 | 分页偏移量 |
+| limit | integer | 否 | 20 | 每页数量（最大 100） |
+
+**成功响应** (200):
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Python",
+      "description": "Python 编程语言",
+      "category": "topic",
+      "relation_count": 3,
+      "created_at": "2026-06-05T10:00:00Z",
+      "updated_at": "2026-06-05T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+---
+
 #### POST /api/v1/concepts — 创建概念
-#### POST /api/v1/concepts/{id}/relations — 创建概念关系
-#### GET /api/v1/graph — 获取知识图谱数据
+
+**请求体**:
+```json
+{
+  "name": "Python",
+  "description": "Python 编程语言基础知识",
+  "category": "topic"
+}
+```
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| name | string (1-255) | 是 | - | 概念名称 |
+| description | string | 否 | - | 概念描述 |
+| category | string | 否 | topic | subject/topic/subtopic/term/other |
+
+**成功响应** (201): 同概念响应对象
+
+**错误响应**:
+- `422` — category 无效、name 为空或超长
+
+---
+
+#### GET /api/v1/concepts/{concept_id} — 概念详情（含关系列表）
+
+**成功响应** (200):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "name": "Python",
+  "description": "Python 编程语言",
+  "category": "topic",
+  "relation_count": 2,
+  "outgoing_relations": [
+    {
+      "id": 1,
+      "source_id": 1,
+      "target_id": 2,
+      "relation_type": "prerequisite",
+      "source_name": "Python",
+      "target_name": "Django",
+      "created_at": "2026-06-05T10:00:00Z"
+    }
+  ],
+  "incoming_relations": [],
+  "created_at": "2026-06-05T10:00:00Z",
+  "updated_at": "2026-06-05T10:00:00Z"
+}
+```
+
+**错误响应**:
+- `403` — 概念不属于当前用户
+- `404` — 概念不存在
+
+---
+
+#### PUT /api/v1/concepts/{concept_id} — 更新概念
+
+**请求体** (所有字段可选):
+```json
+{
+  "name": "Python 进阶",
+  "description": "更新后的描述",
+  "category": "topic"
+}
+```
+
+**成功响应** (200): 同概念响应对象
+
+---
+
+#### DELETE /api/v1/concepts/{concept_id} — 删除概念
+
+级联删除所有关联关系。
+
+**成功响应** (204): 无响应体
+
+---
+
+#### POST /api/v1/concepts/{concept_id}/relations — 创建概念关系
+
+以当前概念为源，指向目标概念。
+
+**请求体**:
+```json
+{
+  "target_id": 2,
+  "relation_type": "prerequisite"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| target_id | integer | 是 | 目标概念 ID |
+| relation_type | string | 是 | prerequisite / related / part_of |
+
+**成功响应** (201):
+```json
+{
+  "id": 1,
+  "source_id": 1,
+  "target_id": 2,
+  "relation_type": "prerequisite",
+  "source_name": "Python",
+  "target_name": "Django",
+  "created_at": "2026-06-05T10:00:00Z"
+}
+```
+
+**错误响应**:
+- `404` — 源概念或目标概念不存在
+- `403` — 概念不属于当前用户
+- `409` — 相同类型的关系已存在
+- `422` — 关系类型无效、不能指向自身
+
+---
+
+#### DELETE /api/v1/concepts/{concept_id}/relations/{relation_id} — 删除概念关系
+
+**成功响应** (204): 无响应体
+
+---
+
+#### GET /api/v1/graph — 获取完整知识图谱数据
+
+返回当前用户所有概念（节点）和关系（边），格式适合前端可视化组件（D3.js / Cytoscape.js）直接使用。
+
+**成功响应** (200):
+```json
+{
+  "nodes": [
+    {
+      "id": 1,
+      "name": "Python",
+      "category": "topic",
+      "description": "Python 编程语言",
+      "relation_count": 2
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source_id": 1,
+      "target_id": 2,
+      "relation_type": "prerequisite",
+      "source_name": "Python",
+      "target_name": "Django"
+    }
+  ],
+  "total_nodes": 5,
+  "total_edges": 4
+}
+```
+
+---
+
+#### GET /api/v1/graph/stats — 图谱统计信息
+
+**成功响应** (200):
+```json
+{
+  "total_concepts": 10,
+  "total_relations": 8,
+  "by_category": {"topic": 5, "term": 3, "subject": 2},
+  "by_relation_type": {"prerequisite": 4, "related": 3, "part_of": 1}
+}
+```
 
 ---
 
