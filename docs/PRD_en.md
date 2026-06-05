@@ -40,7 +40,7 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 | 2 | Learning Goal Management (CRUD) | ✅ Complete | P0 | Phase 1 |
 | 3 | Task Management (CRUD) | ✅ Complete | P0 | Phase 1 |
 | 4 | AI Learning Plan Generation (PlannerAgent) | 🔄 In Progress | P0 | Phase 1 |
-| 5 | Knowledge Base RAG Q&A (DigestAgent) | 📋 Planned | P1 | Phase 2 |
+| 5 | Knowledge Base RAG Q&A (DigestAgent) | 🔄 In Progress | P1 | Phase 2 |
 | 6 | Spaced Repetition (SM-2 Algorithm) | 📋 Planned | P1 | Phase 2 |
 | 7 | Auto Quiz Generation (QuizAgent) | 📋 Planned | P2 | Phase 2 |
 | 8 | Knowledge Graph Visualization | 📋 Planned | P2 | Phase 3 |
@@ -92,9 +92,45 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 - Series of Tasks linked to the Goal
 - Each Task includes: title, description, priority, estimated time, due date, milestone
 
-#### 2.3.2 Knowledge Base RAG Q&A (Step 9+)
+#### 2.3.2 Knowledge Base RAG Q&A (Step 11 - Current)
 
-**Description**: Users upload learning documents (PDF/Markdown/TXT). System performs text chunking and vector embedding storage (pgvector), supporting semantic search and AI Q&A.
+**Description**: Building on Step 9 (document upload + text extraction) and Step 10 (text chunking + vector embedding) infrastructure, implements a complete RAG (Retrieval-Augmented Generation) Q&A flow. Users ask questions in natural language; the system automatically searches for relevant content in uploaded documents, provides retrieved chunks as context to the LLM, and generates answers with source citations.
+
+**RAG Flow**:
+1. Receive user's natural language question
+2. Vectorize the question (OpenAI text-embedding-3-small)
+3. Semantic search across all user document chunks (pgvector cosine similarity)
+4. Select top_k most relevant chunks as context
+5. Build RAG Prompt (system prompt + context chunks + user question + citation requirements)
+6. Call LLM (gpt-4o-mini) to generate answer
+7. Return answer + cited chunk list
+
+**Input**:
+- question: User's natural language question (1-1000 characters)
+- document_id: Optional, limit search to a specific document
+- top_k: Optional, number of chunks to retrieve (default 5, max 20)
+
+**Processing Flow**:
+1. **Semantic Search**: Vectorize query then perform pgvector cosine similarity search, return top_k most relevant chunks
+2. **Context Assembly**: Assemble chunk content + document titles + similarity scores as LLM context
+3. **Answer Generation**: Use DigestAgent (LangGraph workflow), call LLM to generate answer from context
+4. **Citation Attachment**: Mark source citations in answer (document name + chunk index + relevant original text)
+
+**Output**:
+- answer: LLM-generated natural language answer
+- citations: Citation list [{chunk_id, document_id, document_title, chunk_index, content, similarity}]
+
+**Edge Cases**:
+- User has no uploaded documents → Return "You haven't uploaded any documents yet. Please upload learning materials first."
+- No relevant chunks found (all similarity < threshold) → Return "No relevant information found. Please try rephrasing your question."
+- Document content is empty → Skip that document in search
+- Specified document_id does not exist or does not belong to current user → Return 403/404 error
+
+**Technical Implementation**:
+- Agent: LangGraph DigestAgent (search_chunks → generate_answer two-node workflow)
+- Search: Reuses embedding_service.embed_query() + pgvector SQL
+- LLM: ChatOpenAI + with_structured_output (ensures correct answer + citation format)
+- Model: gpt-4o-mini (lightweight model, sufficient quality for RAG scenarios)
 
 #### 2.3.3 Spaced Repetition (Step 10+)
 

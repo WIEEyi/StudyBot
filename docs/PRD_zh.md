@@ -40,7 +40,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | 2 | 学习目标管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
 | 3 | 任务管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
 | 4 | AI 学习计划生成 (PlannerAgent) | 🔄 待开发 | P0 | Phase 1 |
-| 5 | 知识库 RAG 问答 (DigestAgent) | 📋 规划中 | P1 | Phase 2 |
+| 5 | 知识库 RAG 问答 (DigestAgent) | 🔄 开发中 | P1 | Phase 2 |
 | 6 | 间隔复习 (SM-2 算法) | 📋 规划中 | P1 | Phase 2 |
 | 7 | 自动出题 (QuizAgent) | 📋 规划中 | P2 | Phase 2 |
 | 8 | 知识图谱可视化 | 📋 规划中 | P2 | Phase 3 |
@@ -92,12 +92,45 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 - 一系列 Task（任务），关联到该 Goal
 - 每个 Task 包含：标题、描述、优先级、预估耗时、截止日期、里程碑标记
 
-#### 2.3.2 知识库 RAG 问答 (Step 9+)
+#### 2.3.2 知识库 RAG 问答 (Step 11 - 当前步骤)
 
-**功能描述**: 用户上传学习文档（PDF/Markdown/TXT），系统进行文本分块和向量化存储（pgvector），支持语义搜索和 AI 问答。
+**功能描述**: 基于 Step 9（文档上传 + 文本提取）和 Step 10（文本分块 + 向量嵌入）的基础设施，实现完整的 RAG（检索增强生成）问答流程。用户用自然语言提问，系统自动在已上传的文档中语义搜索相关内容，将检索到的分块作为上下文提供给 LLM，生成带引用来源的答案。
 
-**输入**: 文档文件 + 用户问题
-**输出**: AI 生成的答案 + 引用来源
+**RAG 流程**:
+1. 接收用户自然语言问题
+2. 将问题向量化（OpenAI text-embedding-3-small）
+3. 在用户所有文档分块中执行语义搜索（pgvector 余弦相似度）
+4. 选取 top_k 个最相关分块作为上下文
+5. 构建 RAG Prompt（系统提示词 + 上下文分块 + 用户问题 + 引用要求）
+6. 调用 LLM（gpt-4o-mini）生成答案
+7. 返回答案 + 引用的分块列表
+
+**输入**:
+- question: 用户的自然语言问题（1-1000 字符）
+- document_id: 可选，限定搜索特定文档
+- top_k: 可选，检索的分块数量（默认 5，最大 20）
+
+**处理流程**:
+1. **语义搜索**: 将问题向量化后执行 pgvector 余弦相似度搜索，返回 top_k 个最相关分块
+2. **上下文组装**: 将搜索到的分块内容 + 文档标题 + 相似度分数组装为 LLM 上下文
+3. **答案生成**: 使用 DigestAgent（LangGraph 工作流），调用 LLM 基于上下文生成答案
+4. **引用附加**: 答案中标注引用来源（文档名 + 分块序号 + 相关原文）
+
+**输出**:
+- answer: LLM 生成的自然语言答案
+- citations: 引用列表 [{chunk_id, document_id, document_title, chunk_index, content, similarity}]
+
+**边界条件**:
+- 用户没有上传任何文档 → 返回提示"您还没有上传文档，请先上传学习资料"
+- 搜索不到相关分块（所有分块相似度 < threshold）→ 返回"未找到相关信息，请尝试换个问法"
+- 文档内容为空 → 该文档不参与搜索
+- document_id 指定的文档不存在/不属于当前用户 → 返回 403/404 错误
+
+**技术实现**:
+- Agent: LangGraph DigestAgent（search_chunks → generate_answer 两节点工作流）
+- 搜索: 复用 embedding_service.embed_query() + pgvector SQL
+- LLM: ChatOpenAI + with_structured_output（确保答案 + 引用格式正确）
+- 模型: gpt-4o-mini（轻量模型，RAG 场景下质量已足够）
 
 #### 2.3.3 间隔复习 (Step 10+)
 

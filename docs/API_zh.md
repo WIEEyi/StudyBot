@@ -736,7 +736,74 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.5 知识图谱模块 (Step 12+)
+### 3.5 RAG 问答模块 (QA) — Step 11 🔄 开发中
+
+#### POST /api/v1/qa/ask — RAG 知识库问答
+
+**描述**: 用户用自然语言提问，系统自动在已上传的文档中语义搜索相关内容，将检索到的分块作为上下文提供给 LLM，生成带引用来源的答案。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**请求体**:
+```json
+{
+  "question": "Python 中如何实现异步编程",
+  "document_id": null,
+  "top_k": 5
+}
+```
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| question | string (1-1000) | 是 | - | 用户的自然语言问题 |
+| document_id | integer | 否 | null | 限定搜索特定文档，不传则搜索所有文档 |
+| top_k | integer (1-20) | 否 | 5 | 检索的最相关分块数量 |
+
+**成功响应** (200):
+```json
+{
+  "question": "Python 中如何实现异步编程",
+  "answer": "Python 的异步编程主要通过 asyncio 库实现。核心概念包括：\n\n1. **协程 (coroutine)**: 用 async def 定义的函数...\n2. **事件循环 (event loop)**: 通过 asyncio.run() 启动...",
+  "citations": [
+    {
+      "chunk_id": 5,
+      "document_id": 1,
+      "document_title": "Python 学习笔记",
+      "chunk_index": 4,
+      "content": "Python 的异步编程主要基于 asyncio 库...",
+      "similarity": 0.8542
+    },
+    {
+      "chunk_id": 12,
+      "document_id": 2,
+      "document_title": "Python 高级编程",
+      "chunk_index": 11,
+      "content": "异步编程的核心是事件循环机制...",
+      "similarity": 0.7621
+    }
+  ]
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `403` — document_id 指定的文档不属于当前用户
+- `404` — document_id 指定的文档不存在
+- `422` — question 为空或超过 1000 字符、top_k 超出范围
+- `500` — OpenAI API 调用失败（LLM 或 Embedding）
+
+**业务规则**:
+1. 搜索范围仅限当前用户自己的文档分块（user_id 过滤）
+2. 搜索不到相关分块时（所有分块相似度 < 0.3），返回通用提示而非强行编造答案
+3. LLM 被要求必须基于提供的上下文回答，不得编造信息
+4. 答案中引用分块时标注来源文档名和分块序号
+5. 支持限定 document_id 以在单个文档内搜索
+6. 使用 gpt-4o-mini 模型（轻量模型，RAG 场景知识主要来自检索上下文）
+7. 使用 pgvector HNSW 索引加速向量搜索
+
+---
+
+### 3.6 知识图谱模块 (Step 12+)
 
 #### GET /api/v1/concepts — 概念列表
 #### POST /api/v1/concepts — 创建概念

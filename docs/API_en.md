@@ -605,7 +605,74 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 
 ---
 
-### 3.3 Knowledge Graph (Step 12+)
+### 3.5 RAG Q&A Module (QA) — Step 11 🔄 In Progress
+
+#### POST /api/v1/qa/ask — RAG Knowledge Base Q&A
+
+**Description**: Users ask questions in natural language. The system automatically searches for relevant content in uploaded documents, provides retrieved chunks as context to the LLM, and generates answers with source citations.
+
+**Headers**: `Authorization: Bearer <access_token>`
+
+**Request Body**:
+```json
+{
+  "question": "How to implement async programming in Python",
+  "document_id": null,
+  "top_k": 5
+}
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| question | string (1-1000) | Yes | - | User's natural language question |
+| document_id | integer | No | null | Limit search to a specific document; null = search all |
+| top_k | integer (1-20) | No | 5 | Number of most relevant chunks to retrieve |
+
+**Success Response** (200):
+```json
+{
+  "question": "How to implement async programming in Python",
+  "answer": "Python's async programming is primarily implemented through the asyncio library. Core concepts include:\n\n1. **Coroutines**: Functions defined with async def...\n2. **Event Loop**: Started via asyncio.run()...",
+  "citations": [
+    {
+      "chunk_id": 5,
+      "document_id": 1,
+      "document_title": "Python Study Notes",
+      "chunk_index": 4,
+      "content": "Python async programming is based on the asyncio library...",
+      "similarity": 0.8542
+    },
+    {
+      "chunk_id": 12,
+      "document_id": 2,
+      "document_title": "Advanced Python Programming",
+      "chunk_index": 11,
+      "content": "The core of async programming is the event loop mechanism...",
+      "similarity": 0.7621
+    }
+  ]
+}
+```
+
+**Error Responses**:
+- `401` — Unauthorized
+- `403` — Specified document_id does not belong to current user
+- `404` — Specified document_id not found
+- `422` — question empty or exceeds 1000 characters, top_k out of range
+- `500` — OpenAI API call failed (LLM or Embedding)
+
+**Business Rules**:
+1. Search scope limited to current user's own document chunks (user_id filter)
+2. When no relevant chunks found (all similarity < 0.3), return a generic message instead of fabricating an answer
+3. LLM is required to answer based on provided context only, must not fabricate information
+4. Cited chunks in answer are annotated with source document name and chunk index
+5. Supports limiting search to a single document via document_id
+6. Uses gpt-4o-mini model (lightweight model; RAG quality comes from retrieved context)
+7. Uses pgvector HNSW index for accelerated vector search
+
+---
+
+### 3.6 Knowledge Graph Module (Step 12+)
 
 #### GET /api/v1/concepts — List Concepts
 #### POST /api/v1/concepts — Create Concept

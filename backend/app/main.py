@@ -96,6 +96,7 @@ from app.api.v1.goals import router as goals_router
 from app.api.v1.tasks import router as tasks_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.search import router as search_router
+from app.api.v1.qa import router as qa_router
 from app.api.v1.ws import websocket_plan
 
 app.include_router(auth_router, prefix="/api/v1")
@@ -104,6 +105,7 @@ app.include_router(goals_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
+app.include_router(qa_router, prefix="/api/v1")
 
 # WebSocket 端点（不支持 include_router，需直接注册到 app）
 app.websocket("/api/v1/ws/plan")(websocket_plan)
