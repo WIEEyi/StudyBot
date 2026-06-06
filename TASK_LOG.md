@@ -24,6 +24,7 @@
 | Step 13 | [step_13_quiz_agent.md](task_logs/step_13_quiz_agent.md) | 2026-06-05 | ✅ |
 | Step 14 | [step_14_knowledge_graph.md](task_logs/step_14_knowledge_graph.md) | 2026-06-05 | ✅ |
 | Step 15 | [step_15_scheduler_agent.md](task_logs/step_15_scheduler_agent.md) | 2026-06-05 | ✅ |
+| Step 16 | [step_16_dashboard.md](task_logs/step_16_dashboard.md) | 2026-06-06 | ✅ |
 
 ---
 
@@ -46,7 +47,36 @@ task_logs/
 
 ## 当前会话
 
-_会话已终止（2026-06-05 会话结束）_
+**日期**: 2026-06-06
+**工作**: Step 16 — 学习仪表盘
+**状态**: ✅ 完成
+
+### 完成内容
+
+| 类别 | 详情 |
+|------|------|
+| **新增模型** | StudySession (study_sessions) + Task.completed_at 列 |
+| **数据库迁移** | alembic revision: add_study_sessions_and_task_completed_at |
+| **新增 Schemas** | schemas/dashboard.py — 8 个 Pydantic 模型 (Overview/Heatmap/Streak/Session/Insight) |
+| **新增 Service** | services/dashboard_service.py — 聚合统计 + 连续天数计算 + LLM 洞察生成 |
+| **新增 Router** | api/v1/dashboard.py — 5 个端点 (overview/heatmap/streak/study-session/weekly-insight) |
+| **修改文件** | Task 模型 (+completed_at), tasks.py (自动设置 completed_at), main.py (注册路由) |
+| **文档更新** | PRD 中英文 §2.3.7 展开 + API 中英文 §3.9 新增 |
+| **测试** | 25 个单元测试，24 passed + 1 skipped |
+| **全量回归** | 232 passed, 1 skipped (6 个预存在网络问题未计入) |
+
+### 新增 API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /dashboard/overview | 整体学习统计概览 |
+| GET | /dashboard/heatmap?start_date=&end_date= | 每日热力图数据（补零） |
+| GET | /dashboard/streak | 连续学习天数（当前+最长） |
+| POST | /dashboard/study-session | 记录/更新每日学习 (Upsert) |
+| POST | /dashboard/weekly-insight | AI 每周学习洞察 |
+
+---
+
 
 ---
 

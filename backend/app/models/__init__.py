@@ -14,6 +14,7 @@ from app.models.review_card import ReviewCard
 from app.models.quiz import Quiz
 from app.models.concept import Concept
 from app.models.concept_relation import ConceptRelation
+from app.models.study_session import StudySession
 
 __all__ = [
     "Base",
@@ -27,4 +28,5 @@ __all__ = [
     "Quiz",
     "Concept",
     "ConceptRelation",
+    "StudySession",
 ]

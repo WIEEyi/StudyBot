@@ -10,6 +10,7 @@
 """
 
 import logging
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -218,6 +219,10 @@ async def update_task(
 
     for field, value in update_data.items():
         setattr(task, field, value)
+
+    # 如果任务状态变为 done，自动设置完成时间戳（用于仪表盘统计）
+    if update_data.get("status") == "done" and task.completed_at is None:
+        task.completed_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(task)

@@ -2,7 +2,7 @@
 
 > **Base URL**: `http://localhost:8000/api/v1`
 > **Version**: v1.0
-> **Last Updated**: 2026-06-02
+> **Last Updated**: 2026-06-06
 > **Authentication**: Bearer Token (JWT)
 
 ---
@@ -989,6 +989,205 @@ Returns all concepts (nodes) and relations (edges) for the current user, ready f
 3. Preview mode (`apply_changes=false`) returns analysis report without modifying database
 4. Auto-apply (`apply_changes=true`) directly updates due_date and priority
 5. Empty goal (no tasks) returns empty adjustment plan
+
+---
+
+### 3.9 Learning Dashboard Module (Dashboard) — Step 16
+
+#### GET /api/v1/dashboard/overview — Get Learning Statistics Overview
+
+**Description**: Returns the current user's overall learning statistics.
+
+**Request Headers**: `Authorization: Bearer <access_token>`
+
+**Query Parameters**: None
+
+**Success Response** (200):
+```json
+{
+  "total_goals": 5,
+  "active_goals": 3,
+  "completed_goals": 2,
+  "total_tasks": 42,
+  "completed_tasks": 28,
+  "todo_tasks": 10,
+  "in_progress_tasks": 4,
+  "total_review_cards": 15,
+  "due_review_cards": 3,
+  "total_documents": 8,
+  "total_concepts": 12,
+  "total_study_hours": 35.5,
+  "total_study_days": 14,
+  "today_tasks_completed": 2,
+  "today_cards_reviewed": 5
+}
+```
+
+**Error Responses**:
+- `401` — Not authenticated
+
+**Business Rules**:
+1. `today_tasks_completed` counts tasks with non-null `completed_at` today
+2. `today_cards_reviewed` counts cards with non-null `last_reviewed_at` today
+3. `total_study_hours` and `total_study_days` aggregated from `StudySession` table
+4. `due_review_cards` counts cards where `next_review_at <= now`
+
+---
+
+#### GET /api/v1/dashboard/heatmap — Get Daily Study Heatmap Data
+
+**Description**: Returns daily study activity data (duration, completed tasks, reviewed cards) for a date range. Missing dates are filled with zero for continuous heatmap display.
+
+**Request Headers**: `Authorization: Bearer <access_token>`
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| start_date | string (date) | Yes | - | Start date in YYYY-MM-DD format |
+| end_date | string (date) | Yes | - | End date in YYYY-MM-DD format |
+
+**Success Response** (200):
+```json
+{
+  "items": [
+    {"date": "2026-05-01", "duration_minutes": 45, "tasks_completed": 3, "cards_reviewed": 5},
+    {"date": "2026-05-02", "duration_minutes": 0, "tasks_completed": 1, "cards_reviewed": 0},
+    {"date": "2026-05-03", "duration_minutes": 0, "tasks_completed": 0, "cards_reviewed": 0}
+  ],
+  "start_date": "2026-05-01",
+  "end_date": "2026-05-03"
+}
+```
+
+**Error Responses**:
+- `401` — Not authenticated
+- `422` — Parameter validation failed (start_date > end_date)
+
+**Business Rules**:
+1. Data sources merged: StudySession + Task.completed_at + ReviewCard.last_reviewed_at
+2. Every date in range appears in results (zero-filled for inactive days)
+3. Maximum query range: 365 days
+
+---
+
+#### GET /api/v1/dashboard/streak — Get Consecutive Study Days
+
+**Description**: Returns current consecutive study days and all-time longest streak.
+
+**Request Headers**: `Authorization: Bearer <access_token>`
+
+**Query Parameters**: None
+
+**Success Response** (200):
+```json
+{
+  "current_streak": 7,
+  "current_start_date": "2026-05-31",
+  "longest_streak": 14,
+  "longest_start_date": "2026-05-15",
+  "longest_end_date": "2026-05-28"
+}
+```
+
+**Error Responses**:
+- `401` — Not authenticated
+
+**Business Rules**:
+1. Scan backwards from today, stop at first day with no activity (current streak)
+2. Also compute all-time longest consecutive streak
+3. Data sources: StudySession.session_date + Task.completed_at date + ReviewCard.last_reviewed_at date (union, deduplicated)
+4. If no activity today, current_streak is 0, current_start_date is null
+
+---
+
+#### POST /api/v1/dashboard/study-session — Record/Update Today's Study Session
+
+**Description**: Records or updates the current user's study activity for today. Multiple calls on the same day accumulate values (Upsert).
+
+**Request Headers**: `Authorization: Bearer <access_token>`
+
+**Path Parameters**: None
+
+**Request Body**:
+```json
+{
+  "duration_minutes": 30,
+  "tasks_completed": 2,
+  "cards_reviewed": 5
+}
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| duration_minutes | integer | No | 0 | Study duration this session (minutes) |
+| tasks_completed | integer | No | 0 | Tasks completed this session |
+| cards_reviewed | integer | No | 0 | Cards reviewed this session |
+
+**Success Response** (201):
+```json
+{
+  "id": 1,
+  "session_date": "2026-06-06",
+  "duration_minutes": 60,
+  "tasks_completed": 4,
+  "cards_reviewed": 10,
+  "created_at": "2026-06-06T10:00:00Z",
+  "updated_at": "2026-06-06T10:30:00Z"
+}
+```
+
+**Error Responses**:
+- `401` — Not authenticated
+- `422` — Parameter validation failed
+
+**Business Rules**:
+1. Automatically uses today's date as `session_date`
+2. If a record already exists for today, accumulates values; otherwise creates new
+3. All request fields are optional, default to 0
+
+---
+
+#### POST /api/v1/dashboard/weekly-insight — Generate AI Weekly Learning Insight
+
+**Description**: Aggregates the last 7 days of learning data and calls LLM to generate personalized learning insight.
+
+**Request Headers**: `Authorization: Bearer <access_token>`
+
+**Path Parameters**: None
+
+**Request Body**:
+```json
+{}
+```
+
+(No request parameters needed in current version; may extend to accept custom time range)
+
+**Success Response** (200):
+```json
+{
+  "week_start": "2026-05-31",
+  "week_end": "2026-06-06",
+  "insight": "This week you completed 12 learning tasks, reviewed 35 cards, totaling 3.5 hours of study. Compared to last week, your task completion rate improved by 20%...",
+  "stats": {
+    "tasks_completed": 12,
+    "cards_reviewed": 35,
+    "total_study_minutes": 210,
+    "avg_daily_minutes": 30,
+    "most_productive_day": "2026-06-03",
+    "active_days": 6
+  }
+}
+```
+
+**Error Responses**:
+- `401` — Not authenticated
+- `500` — AI analysis failed (LLM call error)
+
+**Business Rules**:
+1. Stats period: last 7 days (including today)
+2. If no learning activity in the period, AI generates encouraging feedback
+3. LLM invocation follows the same pattern as SchedulerAgent, temperature 0.3 for stable output
 
 ---
 

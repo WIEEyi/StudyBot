@@ -222,9 +222,23 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 
 **API**: POST /goals/{goal_id}/schedule
 
-#### 2.3.7 学习仪表盘 (Step 14+)
+#### 2.3.7 学习仪表盘 (Step 16+)
 
 **功能描述**: 可视化展示学习统计——热力图（每日学习时长）、连续学习天数、完成任务数、AI 每周学习洞察。
+
+**数据来源**:
+- `StudySession` 表：记录每日学习活动（学习时长、完成任务数、复习卡片数），一个用户一天一条记录（Upsert）
+- `Task.completed_at`：任务完成时间戳（status 变为 done 时自动设置）
+- `ReviewCard.last_reviewed_at`：卡片复习时间戳
+
+**API 端点**:
+- `GET /dashboard/overview` — 整体统计概览（目标数、任务数、完成率、今日统计）
+- `GET /dashboard/heatmap` — 每日学习热力图数据（日期范围查询，缺失日期补零）
+- `GET /dashboard/streak` — 连续学习天数（当前连续 + 历史最长）
+- `POST /dashboard/study-session` — 记录/更新当日学习 session（Upsert）
+- `POST /dashboard/weekly-insight` — AI 生成每周学习洞察（基于近 7 天数据）
+
+**Streak 计算逻辑**: 从今天往前扫描，遇到无活动（StudySession + Task.completed_at + ReviewCard.last_reviewed_at 三者均无记录的日期）即停止。同时计算历史最长连续天数。
 
 ---
 

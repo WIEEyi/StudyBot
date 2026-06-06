@@ -192,9 +192,23 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 
 **API**: POST /goals/{goal_id}/schedule
 
-#### 2.3.7 Learning Dashboard (Step 14+)
+#### 2.3.7 Learning Dashboard (Step 16+)
 
 **Description**: Visualize learning statistics — heatmap (daily study time), streak, completed task count, AI weekly insights.
+
+**Data Sources**:
+- `StudySession` table: Records daily study activity (study duration, tasks completed, cards reviewed), one record per user per day (Upsert)
+- `Task.completed_at`: Task completion timestamp (auto-set when status changes to done)
+- `ReviewCard.last_reviewed_at`: Card review timestamp
+
+**API Endpoints**:
+- `GET /dashboard/overview` — Overall statistics summary (goals, tasks, completion rate, today's stats)
+- `GET /dashboard/heatmap` — Daily study heatmap data (date range query, missing dates filled with zero)
+- `GET /dashboard/streak` — Consecutive study days (current streak + all-time longest)
+- `POST /dashboard/study-session` — Record/update today's study session (Upsert)
+- `POST /dashboard/weekly-insight` — AI-generated weekly learning insight (based on last 7 days)
+
+**Streak Calculation**: Scan backwards from today. Stop when encountering a day with no activity (no StudySession + no Task.completed_at + no ReviewCard.last_reviewed_at). Also compute the all-time longest streak.
 
 ---
 

@@ -58,6 +58,10 @@ class Task(Base, TimestampMixin):
     milestone: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     # 里程碑序号（用于前端按阶段顺序展示任务，1-based）
     milestone_order: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # 任务完成时间戳（status 变为 done 时自动设置，用于仪表盘统计）
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # --- 关系 ---
     user: Mapped["User"] = relationship("User", back_populates="tasks")

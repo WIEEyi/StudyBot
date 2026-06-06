@@ -2,7 +2,7 @@
 
 > **Base URL**: `http://localhost:8000/api/v1`
 > **版本**: v1.0
-> **最后更新**: 2026-06-02
+> **最后更新**: 2026-06-06
 > **认证方式**: Bearer Token (JWT)
 
 ---
@@ -1186,6 +1186,205 @@ ws://localhost:8000/api/v1/ws/plan?token=<access_token>
 3. 预览模式 (`apply_changes=false`) 仅返回分析报告，不修改数据库
 4. 自动应用 (`apply_changes=true`) 直接更新 due_date 和 priority
 5. 空目标（无任务）返回空调整方案
+
+---
+
+### 3.9 学习仪表盘模块 (Dashboard) — Step 16
+
+#### GET /api/v1/dashboard/overview — 获取学习统计概览
+
+**描述**: 返回当前用户的整体学习统计数据。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**查询参数**: 无
+
+**成功响应** (200):
+```json
+{
+  "total_goals": 5,
+  "active_goals": 3,
+  "completed_goals": 2,
+  "total_tasks": 42,
+  "completed_tasks": 28,
+  "todo_tasks": 10,
+  "in_progress_tasks": 4,
+  "total_review_cards": 15,
+  "due_review_cards": 3,
+  "total_documents": 8,
+  "total_concepts": 12,
+  "total_study_hours": 35.5,
+  "total_study_days": 14,
+  "today_tasks_completed": 2,
+  "today_cards_reviewed": 5
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+
+**业务规则**:
+1. `today_tasks_completed` 统计今日 `completed_at` 不为空的任务数
+2. `today_cards_reviewed` 统计今日 `last_reviewed_at` 不为空的卡片数
+3. `total_study_hours` 和 `total_study_days` 从 `StudySession` 表汇总
+4. `due_review_cards` 统计 `next_review_at <= now` 的到期卡片
+
+---
+
+#### GET /api/v1/dashboard/heatmap — 获取每日学习热力图数据
+
+**描述**: 返回指定日期范围内每日的学习活动数据（时长、完成任务数、复习卡片数）。缺失的日期自动补零，确保前端热力图连续显示。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| start_date | string (date) | 是 | - | 开始日期，格式 YYYY-MM-DD |
+| end_date | string (date) | 是 | - | 结束日期，格式 YYYY-MM-DD |
+
+**成功响应** (200):
+```json
+{
+  "items": [
+    {"date": "2026-05-01", "duration_minutes": 45, "tasks_completed": 3, "cards_reviewed": 5},
+    {"date": "2026-05-02", "duration_minutes": 0, "tasks_completed": 1, "cards_reviewed": 0},
+    {"date": "2026-05-03", "duration_minutes": 0, "tasks_completed": 0, "cards_reviewed": 0}
+  ],
+  "start_date": "2026-05-01",
+  "end_date": "2026-05-03"
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `422` — 参数校验失败（start_date > end_date）
+
+**业务规则**:
+1. 数据源合并：StudySession + Task.completed_at + ReviewCard.last_reviewed_at
+2. 日期范围内每一天都会出现在结果中（无活动则填充零值）
+3. 最大查询范围为 365 天
+
+---
+
+#### GET /api/v1/dashboard/streak — 获取连续学习天数
+
+**描述**: 返回当前连续学习天数和历史最长连续天数。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**查询参数**: 无
+
+**成功响应** (200):
+```json
+{
+  "current_streak": 7,
+  "current_start_date": "2026-05-31",
+  "longest_streak": 14,
+  "longest_start_date": "2026-05-15",
+  "longest_end_date": "2026-05-28"
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+
+**业务规则**:
+1. 从今天开始往前扫描，遇到无活动日期即停止（当前连续）
+2. 同时计算历史最长连续天数
+3. 数据源：StudySession.session_date + Task.completed_at 的日期 + ReviewCard.last_reviewed_at 的日期，取并集去重
+4. 如果今天没有活动，current_streak 为 0，current_start_date 为 null
+
+---
+
+#### POST /api/v1/dashboard/study-session — 记录/更新当日学习 session
+
+**描述**: 记录或更新当前用户今日的学习活动。同一天多次调用会累加数值（Upsert）。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**: 无
+
+**请求体**:
+```json
+{
+  "duration_minutes": 30,
+  "tasks_completed": 2,
+  "cards_reviewed": 5
+}
+```
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| duration_minutes | integer | 否 | 0 | 本次学习时长（分钟） |
+| tasks_completed | integer | 否 | 0 | 本次完成任务数 |
+| cards_reviewed | integer | 否 | 0 | 本次复习卡片数 |
+
+**成功响应** (201):
+```json
+{
+  "id": 1,
+  "session_date": "2026-06-06",
+  "duration_minutes": 60,
+  "tasks_completed": 4,
+  "cards_reviewed": 10,
+  "created_at": "2026-06-06T10:00:00Z",
+  "updated_at": "2026-06-06T10:30:00Z"
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `422` — 参数校验失败
+
+**业务规则**:
+1. 自动使用今天的日期作为 `session_date`
+2. 如果今天已有记录，则累加数值；如果没有则创建新记录
+3. 所有请求字段均可选，默认值为 0
+
+---
+
+#### POST /api/v1/dashboard/weekly-insight — 生成 AI 每周学习洞察
+
+**描述**: 汇总近 7 天的学习数据，调用 LLM 生成个性化的学习洞察报告。
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**: 无
+
+**请求体**:
+```json
+{}
+```
+
+（当前版本无需请求参数，后续可扩展接受自定义时间范围）
+
+**成功响应** (200):
+```json
+{
+  "week_start": "2026-05-31",
+  "week_end": "2026-06-06",
+  "insight": "本周你完成了 12 个学习任务，复习了 35 张卡片，累计学习 3.5 小时。相比上周，任务完成率提升了 20%...",
+  "stats": {
+    "tasks_completed": 12,
+    "cards_reviewed": 35,
+    "total_study_minutes": 210,
+    "avg_daily_minutes": 30,
+    "most_productive_day": "2026-06-03",
+    "active_days": 6
+  }
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `500` — AI 分析失败（LLM 调用错误）
+
+**业务规则**:
+1. 统计周期：过去 7 天（含今天）
+2. 如果该周期无任何学习活动，AI 会生成鼓励性反馈
+3. LLM 调用模式与 SchedulerAgent 一致，温度 0.3 确保输出稳定
 
 ---
 

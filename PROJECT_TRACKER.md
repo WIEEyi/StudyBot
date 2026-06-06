@@ -129,10 +129,10 @@ pyProject/
 
 ## 当前状态
 
-- **阶段**: Phase 3 进行中
-- **步骤**: Step 14 完成 ✅
+- **阶段**: Phase 3 完成 ✅
+- **步骤**: Step 16 完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-05 (Step 14 知识图谱完成)
+- **最后更新**: 2026-06-06 (Step 16 学习仪表盘完成)
 
 ---
 
@@ -157,7 +157,9 @@ pyProject/
 | 2026-06-05 | Step 12 | 间隔复习 — SM-2 算法 + ReviewCard CRUD + 评分 API ✅ |
 | 2026-06-05 | Step 13 | 自动出题 — AI 基于文档生成测验题 (QuizAgent) ✅ |
 | 2026-06-05 | 审计 | 全量代码审计: 修复 3 个问题 (Quiz注释 + threshold + milestone_order) ✅ |
+| 2026-06-05 | Step 14 | 知识图谱: Concept CRUD + Relations + Graph API + 45 个测试 ✅ |
 | 2026-06-05 | Step 15 | 动态计划调整 — SchedulerAgent + POST /goals/{id}/schedule + 12 个测试 ✅ |
+| 2026-06-06 | Step 16 | 学习仪表盘 — StudySession + 热力图 + 连续天数 + AI 周报 + 25 个测试 ✅ |
 
 ### 🔄 进行中
 
@@ -167,7 +169,7 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 16 | 学习仪表盘 — 热力图、连续天数、AI 每周洞察 |
+| Step 17 | 前端开发 — Next.js 初始化 + 仪表盘页面 |
 
 ### 💡 待办改进
 
