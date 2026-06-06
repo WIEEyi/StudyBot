@@ -25,6 +25,7 @@
 | Step 14 | [step_14_knowledge_graph.md](task_logs/step_14_knowledge_graph.md) | 2026-06-05 | ✅ |
 | Step 15 | [step_15_scheduler_agent.md](task_logs/step_15_scheduler_agent.md) | 2026-06-05 | ✅ |
 | Step 16 | [step_16_dashboard.md](task_logs/step_16_dashboard.md) | 2026-06-06 | ✅ |
+| Step 17 | [step_17_frontend.md](task_logs/step_17_frontend.md) | 2026-06-06 | ✅ |
 
 ---
 
