@@ -103,6 +103,43 @@ export function del<T>(path: string): Promise<T> {
   return request<T>("DELETE", path);
 }
 
+/** multipart/form-data 上传（用于文件上传，不设置 Content-Type） */
+export async function postFormData<T>(path: string, formData: FormData): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const headers: Record<string, string> = {};
+
+  const token = getAccessToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, { method: "POST", headers, body: formData });
+  } catch {
+    throw new ApiError(0, "网络连接失败，请检查后端服务是否启动");
+  }
+
+  if (response.status === 401) {
+    clearTokens();
+    if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+      window.location.href = "/login";
+    }
+    throw new ApiError(401, "登录已过期，请重新登录");
+  }
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new ApiError(response.status, data.detail || `上传失败 (${response.status})`);
+  }
+  return data as T;
+}
+
+/** PATCH 请求 */
+export function patch<T>(path: string, body?: unknown): Promise<T> {
+  return request<T>("PATCH", path, body);
+}
+
 // -- 认证 API --
 
 export interface LoginRequest {

@@ -130,9 +130,9 @@ pyProject/
 ## 当前状态
 
 - **阶段**: Phase 3 完成 ✅
-- **步骤**: Step 17 完成 ✅
+- **步骤**: Step 18 完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-06 (Step 17 Next.js 前端完成)
+- **最后更新**: 2026-06-06 (Step 18 前端 Goals/Tasks/Documents CRUD 完成)
 
 ---
 
@@ -161,6 +161,7 @@ pyProject/
 | 2026-06-05 | Step 15 | 动态计划调整 — SchedulerAgent + POST /goals/{id}/schedule + 12 个测试 ✅ |
 | 2026-06-06 | Step 16 | 学习仪表盘 — StudySession + 热力图 + 连续天数 + AI 周报 + 25 个测试 ✅ |
 | 2026-06-06 | Step 17 | Next.js 前端 — 登录页 + 仪表盘页面 (StatCard/Heatmap/Streak/AI周报) ✅ |
+| 2026-06-06 | Step 18 | 前端扩展 — Goals/Tasks CRUD + 文档上传管理 ✅ |
 
 ### 🔄 进行中
 
@@ -170,12 +171,11 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 18 | 前端扩展 — Goals/Tasks CRUD 页面 + 文档上传页面 |
+| Step 19 | 前端扩展 — 间隔复习页面 + AI 问答页面 |
 
 ### 💡 待办改进
 
-- [ ] 前端热力图改用 Recharts 日历热力图组件（当前为自定义 div 网格）
-- [ ] JWT Token 改用 httpOnly Cookie 存储（更安全）
+- [ ] 前端热力图改用 Recharts 日历热力图组件
 
 ---
 

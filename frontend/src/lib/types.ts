@@ -69,3 +69,108 @@ export interface StudySessionCreate {
   tasks_completed?: number;
   cards_reviewed?: number;
 }
+
+// -- Goal 类型 --
+
+export type GoalStatus = "active" | "completed" | "paused";
+
+export interface Goal {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string | null;
+  deadline: string | null;
+  status: GoalStatus;
+  task_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalListResponse {
+  items: Goal[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface GoalCreate {
+  title: string;
+  description?: string;
+  deadline?: string;
+}
+
+export interface GoalUpdate {
+  title?: string;
+  description?: string;
+  deadline?: string;
+  status?: GoalStatus;
+}
+
+// -- Task 类型 --
+
+export type TaskStatus = "todo" | "in_progress" | "done" | "cancelled";
+export type TaskPriority = "low" | "medium" | "high";
+
+export interface Task {
+  id: number;
+  user_id: number;
+  goal_id: number | null;
+  title: string;
+  description: string | null;
+  priority: TaskPriority;
+  due_date: string | null;
+  status: TaskStatus;
+  estimated_minutes: number | null;
+  milestone: string | null;
+  milestone_order: number | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskListResponse {
+  items: Task[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface TaskCreate {
+  title: string;
+  description?: string;
+  goal_id?: number;
+  priority?: TaskPriority;
+  due_date?: string;
+  estimated_minutes?: number;
+}
+
+export interface TaskUpdate {
+  title?: string;
+  description?: string;
+  priority?: TaskPriority;
+  due_date?: string;
+  status?: TaskStatus;
+  estimated_minutes?: number;
+}
+
+// -- Document 类型 --
+
+export type FileType = "pdf" | "md" | "txt" | "html";
+
+export interface Document {
+  id: number;
+  user_id: number;
+  title: string;
+  file_path: string | null;
+  file_type: FileType;
+  content: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentListResponse {
+  items: Document[];
+  total: number;
+  offset: number;
+  limit: number;
+}

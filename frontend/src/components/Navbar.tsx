@@ -33,20 +33,27 @@ export default function Navbar() {
 
           {/* 右侧：导航 + 退出 */}
           {authed && (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push("/dashboard")}
-                className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                  pathname === "/dashboard"
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                }`}
-              >
-                仪表盘
-              </button>
+            <div className="flex items-center gap-3">
+              {[
+                { label: "仪表盘", path: "/dashboard" },
+                { label: "目标", path: "/goals" },
+                { label: "文档", path: "/documents" },
+              ].map(({ label, path }) => (
+                <button
+                  key={path}
+                  onClick={() => router.push(path)}
+                  className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                    pathname.startsWith(path)
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
               <button
                 onClick={handleLogout}
-                className="text-sm text-gray-500 hover:text-red-600 transition-colors"
+                className="text-sm text-gray-500 hover:text-red-600 transition-colors ml-1"
               >
                 退出
               </button>
