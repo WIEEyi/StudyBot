@@ -115,3 +115,24 @@ task_logs/
 **_注意_: 本次新增了 pytest 依赖，下次启动需先 `docker compose build backend`**
 **下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
 **下一步**: Step 7 — 重建 Docker 镜像 → 运行 pytest 测试 → 修复 → 手动 curl 验证
+
+---
+
+## 2026-06-19 会话结束 🔴
+
+**完成的工作**:
+- ✅ Step 19 前端扩展: `/review` 间隔复习页面 + `/qa` AI 问答页面
+- ✅ types.ts 新增 ReviewCard/QA 等 8 个 TS 类型
+- ✅ Navbar 添加"复习"和"AI 问答"导航链接
+- ✅ Next.js 构建验证通过 (10/10 pages)
+- ✅ PROJECT_TRACKER.md / TASK_LOG.md / QA_LOG.md / task_logs/step_19 已更新
+- ✅ Git commit + push → `feature/step-19-review-qa-pages`
+
+**结束位置**: Step 19 全部完成 ✅
+**Git 分支**: `feature/step-19-review-qa-pages`（已推送）
+**Docker 服务**: 未在本会话启动（纯前端开发）
+**下次恢复**: 将 PROJECT_TRACKER.md 提供给 Claude，说"继续 StudyBot 项目"
+**下一步**: Step 20 — 前端扩展：自动出题页面 + 知识图谱可视化
+
+---
+🤖 会话结束标记 | 2026-06-19 | feature/step-19-review-qa-pages
