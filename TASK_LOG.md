@@ -16,6 +16,18 @@
 | Step 5 | [step_05_jwt_auth.md](task_logs/step_05_jwt_auth.md) | 2026-06-01 | ✅ |
 | Step 6 | [step_06_models_migration.md](task_logs/step_06_models_migration.md) | 2026-06-01 | ✅ |
 | Step 7 | [step_07_goals_tasks_crud.md](task_logs/step_07_goals_tasks_crud.md) | 2026-06-02 | ✅ |
+| Step 8 | (内联在 PROJECT_TRACKER.md) | 2026-06-02 | ✅ |
+| Step 9 | (内联在 PROJECT_TRACKER.md) | 2026-06-04 | ✅ |
+| Step 10 | (内联在 PROJECT_TRACKER.md) | 2026-06-05 | ✅ |
+| Step 11 | (内联在 PROJECT_TRACKER.md) | 2026-06-05 | ✅ |
+| Step 12 | (内联在 PROJECT_TRACKER.md) | 2026-06-05 | ✅ |
+| Step 13 | (内联在 PROJECT_TRACKER.md) | 2026-06-05 | ✅ |
+| Step 14 | (内联在 PROJECT_TRACKER.md) | 2026-06-05 | ✅ |
+| Step 15 | (内联在 PROJECT_TRACKER.md) | 2026-06-05 | ✅ |
+| Step 16 | [step_16_dashboard.md](task_logs/step_16_dashboard.md) | 2026-06-06 | ✅ |
+| Step 17 | [step_17_nextjs_frontend.md](task_logs/step_17_nextjs_frontend.md) | 2026-06-06 | ✅ |
+| Step 18 | [step_18_frontend_crud.md](task_logs/step_18_frontend_crud.md) | 2026-06-06 | ✅ |
+| Step 19 | [step_19_review_qa_pages.md](task_logs/step_19_review_qa_pages.md) | 2026-06-19 | ✅ |
 
 ---
 
@@ -38,7 +50,22 @@ task_logs/
 
 ## 当前会话
 
-_无进行中会话（Step 7 已完成，等待开始 Step 8）_
+**Step 19** — 前端扩展：间隔复习页面 + AI 问答页面
+
+---
+
+## 2026-06-19 会话
+
+**完成的工作**:
+- ✅ Step 19 前端扩展: `/review` 间隔复习页面 + `/qa` AI 问答页面
+- ✅ types.ts 新增 ReviewCard/QA 相关 TS 类型
+- ✅ Navbar 添加"复习"和"AI 问答"导航链接
+- ✅ Next.js 构建验证通过 (10/10 pages)
+- ✅ PROJECT_TRACKER.md / TASK_LOG.md / task_logs/step_19 已更新
+
+**结束位置**: Step 19 全部完成 ✅，Step 20 (前端出题页面 + 知识图谱) 待开始
+**下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
+**下一步**: Step 20 — 前端扩展：自动出题页面 + 知识图谱可视化
 
 ---
 

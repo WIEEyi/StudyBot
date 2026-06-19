@@ -129,10 +129,10 @@ pyProject/
 
 ## 当前状态
 
-- **阶段**: Phase 1 - MVP
-- **步骤**: Step 8 前置工作（PRD + API 文档 + Git 仓库初始化）
+- **阶段**: Phase 3 完成 ✅
+- **步骤**: Step 19 完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-02 (PRD 中英文、API 文档中英文、Git 仓库初始化、开发流程完善)
+- **最后更新**: 2026-06-19 (Step 19 前端间隔复习页面 + AI 问答页面)
 
 ---
 
@@ -150,6 +150,19 @@ pyProject/
 | 2026-06-01 | Step 6 | 数据库模型 + Alembic 迁移完成 ✅ |
 | 2026-06-02 | Step 7 | Goals + Tasks CRUD API + 单元测试（45/45 全部通过）✅ |
 | 2026-06-02 | 基础设施 | PRD 中英文文档 + API 中英文文档 + Git 初始化 + 开发流程完善 ✅ |
+| 2026-06-02 | Step 8 | PlannerAgent + WebSocket — AI 学习计划生成 ✅ |
+| 2026-06-04 | Step 9 | 文档上传 + 文本提取 ✅ |
+| 2026-06-05 | Step 10 | 向量嵌入 — 文本分块 + OpenAI Embedding + pgvector 存储 + 语义搜索 ✅ |
+| 2026-06-05 | Step 11 | RAG 问答 — 语义搜索 + AI 答案生成 (DigestAgent) ✅ |
+| 2026-06-05 | Step 12 | 间隔复习 — SM-2 算法 + ReviewCard CRUD + 评分 API ✅ |
+| 2026-06-05 | Step 13 | 自动出题 — AI 基于文档生成测验题 (QuizAgent) ✅ |
+| 2026-06-05 | 审计 | 全量代码审计: 修复 3 个问题 (Quiz注释 + threshold + milestone_order) ✅ |
+| 2026-06-05 | Step 14 | 知识图谱: Concept CRUD + Relations + Graph API + 45 个测试 ✅ |
+| 2026-06-05 | Step 15 | 动态计划调整 — SchedulerAgent + POST /goals/{id}/schedule + 12 个测试 ✅ |
+| 2026-06-06 | Step 16 | 学习仪表盘 — StudySession + 热力图 + 连续天数 + AI 周报 + 25 个测试 ✅ |
+| 2026-06-06 | Step 17 | Next.js 前端 — 登录页 + 仪表盘页面 (StatCard/Heatmap/Streak/AI周报) ✅ |
+| 2026-06-06 | Step 18 | 前端扩展 — Goals/Tasks CRUD + 文档上传管理 ✅ |
+| 2026-06-19 | Step 19 | 前端扩展 — 间隔复习页面 + AI 问答页面 ✅ |
 
 ### 🔄 进行中
 
@@ -159,11 +172,13 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 8 | PlannerAgent + WebSocket — AI 学习计划生成 |
+| Step 20 | 前端扩展 — 自动出题页面 + 知识图谱可视化 |
 
 ### 💡 待办改进
 
-_无待办项_
+- [ ] 前端热力图改用 Recharts 日历热力图组件
+- [ ] 复习页可添加批量导入功能（从文档自动生成卡片）
+- [ ] QA 页可添加对话历史持久化
 
 ---
 
@@ -409,10 +424,31 @@ docker compose exec backend pytest tests/api/v1/test_tasks.py -v
 
 ---
 
-### Step 8: PlannerAgent + WebSocket
+### Step 19: 前端扩展 — 间隔复习页面 + AI 问答页面 ✅ (已完成)
 
-_(详细指令将在 Step 7 完成后写入)_
+**目标**: 在前端添加间隔复习（SM-2）和 RAG AI 问答两个页面
+
+**创建的文件**:
+- `frontend/src/app/review/page.tsx` — 间隔复习页面（列表 + 复习模式 + CRUD）
+- `frontend/src/app/qa/page.tsx` — AI 问答页面（对话界面 + 简易 Markdown + 引用列表）
+- `task_logs/step_19_review_qa_pages.md` — 详细执行记录
+
+**修改的文件**:
+- `frontend/src/lib/types.ts` — 添加 ReviewCard/QA 相关 TS 类型
+- `frontend/src/components/Navbar.tsx` — 添加"复习"和"AI 问答"导航链接
+
+**技术要点**:
+- 翻转卡片动画（CSS perspective + transition）
+- SM-2 评分 UI（0-5 分，每个分值有对应颜色和标签）
+- 简易 Markdown 渲染器（支持标题/粗体/代码/列表）
+- 对话历史管理（useState 会话内保留）
 
 ---
 
-> **使用说明**: 每次新开终端，将本文件和 `PROJECT_TRACKER.md` 一起提供给 Claude，告诉它 "继续 StudyBot 项目"。Claude 会从 `### 📋 下一步` 找到当前要做的步骤，从 `## 详细步骤指令` 找到具体操作指南。
+### Step 20: 前端扩展 — 自动出题页面 + 知识图谱可视化
+
+_(详细指令将在 Step 19 完成后写入)_
+
+---
+
+> **使用说明**: 每次新开终端，将本文件提供给 Claude，告诉它 "继续 StudyBot 项目"。Claude 会从 `### 📋 下一步` 找到当前要做的步骤。

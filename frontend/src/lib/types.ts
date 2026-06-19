@@ -1,0 +1,254 @@
+/**
+ * Dashboard API 响应类型定义
+ *
+ * 与后端 schemas/dashboard.py 对齐
+ */
+
+// 统计概览
+export interface DashboardOverview {
+  total_goals: number;
+  active_goals: number;
+  completed_goals: number;
+  total_tasks: number;
+  completed_tasks: number;
+  todo_tasks: number;
+  in_progress_tasks: number;
+  total_review_cards: number;
+  due_review_cards: number;
+  total_documents: number;
+  total_concepts: number;
+  total_study_hours: number;
+  total_study_days: number;
+  today_tasks_completed: number;
+  today_cards_reviewed: number;
+}
+
+// 热力图
+export interface HeatmapItem {
+  date: string; // YYYY-MM-DD
+  duration_minutes: number;
+  tasks_completed: number;
+  cards_reviewed: number;
+}
+
+export interface HeatmapResponse {
+  items: HeatmapItem[];
+  start_date: string;
+  end_date: string;
+}
+
+// 连续天数
+export interface StreakResponse {
+  current_streak: number;
+  current_start_date: string | null;
+  longest_streak: number;
+  longest_start_date: string | null;
+  longest_end_date: string | null;
+}
+
+// AI 周报
+export interface WeeklyInsightStats {
+  tasks_completed: number;
+  cards_reviewed: number;
+  total_study_minutes: number;
+  avg_daily_minutes: number;
+  most_productive_day: string | null;
+  active_days: number;
+}
+
+export interface WeeklyInsightResponse {
+  week_start: string;
+  week_end: string;
+  insight: string;
+  stats: WeeklyInsightStats;
+}
+
+// 学习会话
+export interface StudySessionCreate {
+  duration_minutes?: number;
+  tasks_completed?: number;
+  cards_reviewed?: number;
+}
+
+// -- Goal 类型 --
+
+export type GoalStatus = "active" | "completed" | "paused";
+
+export interface Goal {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string | null;
+  deadline: string | null;
+  status: GoalStatus;
+  task_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalListResponse {
+  items: Goal[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface GoalCreate {
+  title: string;
+  description?: string;
+  deadline?: string;
+}
+
+export interface GoalUpdate {
+  title?: string;
+  description?: string;
+  deadline?: string;
+  status?: GoalStatus;
+}
+
+// -- Task 类型 --
+
+export type TaskStatus = "todo" | "in_progress" | "done" | "cancelled";
+export type TaskPriority = "low" | "medium" | "high";
+
+export interface Task {
+  id: number;
+  user_id: number;
+  goal_id: number | null;
+  title: string;
+  description: string | null;
+  priority: TaskPriority;
+  due_date: string | null;
+  status: TaskStatus;
+  estimated_minutes: number | null;
+  milestone: string | null;
+  milestone_order: number | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskListResponse {
+  items: Task[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface TaskCreate {
+  title: string;
+  description?: string;
+  goal_id?: number;
+  priority?: TaskPriority;
+  due_date?: string;
+  estimated_minutes?: number;
+}
+
+export interface TaskUpdate {
+  title?: string;
+  description?: string;
+  priority?: TaskPriority;
+  due_date?: string;
+  status?: TaskStatus;
+  estimated_minutes?: number;
+}
+
+// -- Document 类型 --
+
+export type FileType = "pdf" | "md" | "txt" | "html";
+
+export interface Document {
+  id: number;
+  user_id: number;
+  title: string;
+  file_path: string | null;
+  file_type: FileType;
+  content: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentListResponse {
+  items: Document[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+// -- ReviewCard 类型（间隔复习 / SM-2）--
+
+export interface ReviewCard {
+  id: number;
+  user_id: number;
+  document_id: number | null;
+  front: string;
+  back: string;
+  source: "manual" | "ai_generated";
+  ease_factor: number;
+  interval: number;
+  repetitions: number;
+  next_review_at: string | null;
+  last_reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewCardListResponse {
+  items: ReviewCard[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface ReviewCardCreate {
+  front: string;
+  back: string;
+  document_id?: number;
+}
+
+export interface ReviewCardUpdate {
+  front?: string;
+  back?: string;
+  document_id?: number;
+}
+
+/** SM-2 评分提交 */
+export interface ReviewSubmission {
+  /** 回忆质量 0-5: 0=完全忘记, 5=完美回忆 */
+  rating: number;
+}
+
+/** SM-2 评分结果 */
+export interface ReviewResponse {
+  id: number;
+  rating: number;
+  previous_interval: number;
+  new_interval: number;
+  ease_factor: number;
+  repetitions: number;
+  next_review_at: string;
+}
+
+// -- QA 问答类型（RAG）--
+
+export interface QARequest {
+  question: string;
+  document_id?: number;
+  top_k?: number;
+  threshold?: number;
+}
+
+export interface CitationItem {
+  chunk_id: number;
+  document_id: number;
+  document_title: string;
+  chunk_index: number;
+  content: string;
+  similarity: number;
+}
+
+export interface QAResponse {
+  question: string;
+  answer: string;
+  citations: CitationItem[];
+}
