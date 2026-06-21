@@ -137,3 +137,31 @@ CI 通过 → 构建 Docker 镜像 → 推送到镜像仓库 → 部署到测试
 ## 2026-06-19
 
 **本次会话无技术问答**。会话内容为 Step 19 前端扩展开发（间隔复习页面 + AI 问答页面），全程按 PROJECT_TRACKER.md 指令执行，无额外技术概念讨论。
+
+---
+
+## 2026-06-21
+
+### Q1: Steps 8-16 标记为完成，但后端 API 路由缺失怎么办？
+
+**问**: PROJECT_TRACKER.md 显示 Steps 8-16 ✅ 已完成，但实际代码中 `backend/app/api/v1/` 只有 auth/users/goals/tasks 四个路由文件。Quiz、Concept、Document、ReviewCard 的 ORM 模型存在但 API 路由和 Schema 从未实现。如何继续 Step 20？
+
+**答**: 需要先补齐后端 API。Step 20 的任务是"前端自动出题页面 + 知识图谱可视化"，这两个功能直接依赖 Quiz 和 Concept 模块的后端 API。推荐策略是**先补后端再前端**：为 Quiz 和 Concept 创建完整的 API 路由 + Schema + 测试，再开发前端页面。其他缺失模块（Documents、ReviewCards、Dashboard 等）可在 Step 21 统一补齐。
+
+### Q2: Quiz 模型 `options` 字段类型不匹配
+
+**问**: Quiz 模型的 `options` 列定义为 `Mapped[Optional[dict]]`（JSON），但实际存储的是选项列表（如 `["A", "B", "C", "D"]`）。Schema 应该用 `list[str]` 还是 `dict`？
+
+**答**: Schema 使用 `list[str]`。SQLAlchemy 的 JSON 列可以存储任何 JSON 可序列化的值（包括数组），不限于 dict。Pydantic 的 `list[str]` 会在存入数据库时自动序列化为 JSON 数组，读取时自动反序列化回 Python list。
+
+### Q3: Quiz 模型 `correct_answer` 类型不匹配
+
+**问**: 模型注释说 `correct_answer` 是"正确答案在 options 数组中的索引（0-based）"，但列类型是 `String(255)`。Schema 应该用什么类型？
+
+**答**: Schema 使用 `int`（带 `ge=0` 验证），路由层做转换：`str(answer_index)` 存入数据库，`int(stored_value)` 在响应中返回。这样既保持了数据库兼容性，又提供了前端的类型安全。
+
+### Q4: ConceptRelation 没有 user_id，如何做权限隔离？
+
+**问**: ConceptRelation 模型只有 source_id 和 target_id，没有 user_id 字段。如何防止用户 A 操作用户 B 创建的关系？
+
+**答**: 通过 source concept 间接验证。在创建/删除关系前，先通过 `_get_user_concept` 验证 source concept 属于当前用户。由于 source concept 有 user_id，这确保了只有概念的所有者可以管理其关系。
