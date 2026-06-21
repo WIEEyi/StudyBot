@@ -60,3 +60,6 @@ out/
 
 # Alembic
 backend/alembic/versions/__pycache__/
+
+# Uploaded files
+backend/uploads/

@@ -252,3 +252,147 @@ export interface QAResponse {
   answer: string;
   citations: CitationItem[];
 }
+
+// -- Quiz 类型（测验）--
+
+export type QuizSource = "manual" | "ai_generated";
+
+export interface Quiz {
+  id: number;
+  user_id: number;
+  document_id: number | null;
+  question: string;
+  options: string[];
+  correct_answer: number;
+  explanation: string | null;
+  source: QuizSource;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizListResponse {
+  items: Quiz[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface QuizCreate {
+  question: string;
+  options: string[];
+  correct_answer: number;
+  explanation?: string;
+  document_id?: number;
+  source?: QuizSource;
+}
+
+export interface QuizUpdate {
+  question?: string;
+  options?: string[];
+  correct_answer?: number;
+  explanation?: string;
+  document_id?: number;
+}
+
+export interface QuizGenerateRequest {
+  document_id: number;
+  count?: number;
+}
+
+export interface QuizGenerateResponse {
+  quizzes: Quiz[];
+  document_id: number;
+  count: number;
+}
+
+export interface QuizSubmission {
+  quiz_id: number;
+  selected_index: number;
+}
+
+export interface QuizResultResponse {
+  quiz_id: number;
+  question: string;
+  selected_index: number;
+  correct_index: number;
+  is_correct: boolean;
+  explanation: string | null;
+}
+
+export interface QuizScoreResponse {
+  results: QuizResultResponse[];
+  total: number;
+  correct_count: number;
+  score_percent: number;
+}
+
+// -- Concept 类型（知识图谱）--
+
+export type ConceptCategory = "subject" | "topic" | "subtopic" | "term" | "other";
+export type RelationType = "prerequisite" | "related" | "part_of";
+
+export interface Concept {
+  id: number;
+  user_id: number;
+  name: string;
+  description: string | null;
+  category: ConceptCategory;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConceptRelationResponse {
+  id: number;
+  source_id: number;
+  target_id: number;
+  relation_type: RelationType;
+}
+
+export interface ConceptDetail extends Concept {
+  outgoing_relations: ConceptRelationResponse[];
+  incoming_relations: ConceptRelationResponse[];
+}
+
+export interface ConceptListResponse {
+  items: Concept[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface ConceptCreate {
+  name: string;
+  description?: string;
+  category?: ConceptCategory;
+}
+
+export interface ConceptUpdate {
+  name?: string;
+  description?: string;
+  category?: ConceptCategory;
+}
+
+export interface ConceptRelationCreate {
+  target_id: number;
+  relation_type: RelationType;
+}
+
+// -- Graph 类型（图谱可视化）--
+
+export interface GraphNode {
+  id: number;
+  name: string;
+  category: ConceptCategory;
+}
+
+export interface GraphEdge {
+  source: number;
+  target: number;
+  relation_type: RelationType;
+  label: string;
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}

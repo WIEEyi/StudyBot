@@ -130,9 +130,9 @@ pyProject/
 ## 当前状态
 
 - **阶段**: Phase 3 完成 ✅
-- **步骤**: Step 19 完成 ✅
+- **步骤**: Step 20 完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-19 (Step 19 前端间隔复习页面 + AI 问答页面)
+- **最后更新**: 2026-06-21 (Step 20 后端 Quiz + Concept API + 前端出题页面 + 知识图谱可视化)
 
 ---
 
@@ -163,6 +163,7 @@ pyProject/
 | 2026-06-06 | Step 17 | Next.js 前端 — 登录页 + 仪表盘页面 (StatCard/Heatmap/Streak/AI周报) ✅ |
 | 2026-06-06 | Step 18 | 前端扩展 — Goals/Tasks CRUD + 文档上传管理 ✅ |
 | 2026-06-19 | Step 19 | 前端扩展 — 间隔复习页面 + AI 问答页面 ✅ |
+| 2026-06-21 | Step 20 | 后端 Quiz + Concept API (15 个端点 + 43 个测试) + 前端出题页面 + 知识图谱可视化 ✅ |
 
 ### 🔄 进行中
 
@@ -172,13 +173,14 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 20 | 前端扩展 — 自动出题页面 + 知识图谱可视化 |
+| Step 21 | 补齐缺失的后端 API（Documents, ReviewCards, Dashboard, RAG QA, PlannerAgent）+ 前端对接验证 |
 
 ### 💡 待办改进
 
 - [ ] 前端热力图改用 Recharts 日历热力图组件
 - [ ] 复习页可添加批量导入功能（从文档自动生成卡片）
 - [ ] QA 页可添加对话历史持久化
+- [ ] AI 出题 stub 替换为真实 LLM 调用
 
 ---
 
@@ -445,9 +447,44 @@ docker compose exec backend pytest tests/api/v1/test_tasks.py -v
 
 ---
 
-### Step 20: 前端扩展 — 自动出题页面 + 知识图谱可视化
+### Step 20: 后端 Quiz + Concept API + 前端出题页面 + 知识图谱可视化 ✅ (已完成)
 
-_(详细指令将在 Step 19 完成后写入)_
+**目标**: 补全 Quiz 和 Concept/Graph 两个模块的完整前后端。
+
+**重要发现**: Steps 8-16 的 ORM 模型存在，但后端 API 路由/Schema/测试均未实现。Step 20 补齐了 Quiz 和 Concept 模块的全栈实现。
+
+**创建的文件** (10 个):
+- `backend/app/schemas/quiz.py` — QuizCreate/Update/Response/ListResponse + Generate + Grade 相关 schema（含 model_validator）
+- `backend/app/schemas/concept.py` — ConceptCreate/Update/Response/Detail/List + Relation + Graph schema
+- `backend/app/api/v1/quizzes.py` — 7 个端点（CRUD + generate + grade）
+- `backend/app/api/v1/concepts.py` — 8 个端点（CRUD + relations + graph）
+- `backend/tests/api/v1/test_quizzes.py` — 18 个测试用例
+- `backend/tests/api/v1/test_concepts.py` — 25 个测试用例
+- `frontend/src/types/vis-network.d.ts` — vis-network TypeScript 类型声明
+- `frontend/src/components/KnowledgeGraphCanvas.tsx` — vis-network React 封装（力导向图 + 颜色映射 + 节点点击）
+- `frontend/src/app/quiz/page.tsx` — 测验页面（列表 + 做题模式 + AI 生成 + CRUD）
+- `frontend/src/app/concepts/page.tsx` — 知识图谱页面（列表/图谱双视图 + 关系管理）
+
+**修改的文件** (4 个):
+- `backend/app/main.py` — 注册 quizzes_router + concepts_router
+- `frontend/src/lib/types.ts` — 添加 25 个 TS 类型
+- `frontend/src/components/Navbar.tsx` — 添加"测验"和"知识图谱"导航链接
+- `frontend/package.json` — 添加 vis-network + vis-data 依赖
+
+**技术要点**:
+- correct_answer: Schema int ↔ ORM str 转换
+- options 字段: Schema list[str] → SQLAlchemy JSON 列自动序列化
+- AI 出题 stub: 返回 mock 数据，记录 warning 日志
+- ConceptRelation 权限: 通过 source concept 的 user_id 间接验证
+- 图谱防重复: 防自引用 (400) + 防重复关系 (409)
+- vis-network: standalone 模式，useRef + useEffect 管理 DOM 生命周期
+- 前端构建验证: 12/12 pages 全部通过
+
+---
+
+### Step 21: 补齐缺失的后端 API + 前端对接验证
+
+_(详细指令待撰写 — 将补齐 Documents, ReviewCards, Dashboard, RAG QA, PlannerAgent 等模块的后端 API 路由 + 测试)_
 
 ---
 

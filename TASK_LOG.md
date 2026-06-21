@@ -28,6 +28,7 @@
 | Step 17 | [step_17_nextjs_frontend.md](task_logs/step_17_nextjs_frontend.md) | 2026-06-06 | ✅ |
 | Step 18 | [step_18_frontend_crud.md](task_logs/step_18_frontend_crud.md) | 2026-06-06 | ✅ |
 | Step 19 | [step_19_review_qa_pages.md](task_logs/step_19_review_qa_pages.md) | 2026-06-19 | ✅ |
+| Step 20 | [step_20_quiz_concepts.md](task_logs/step_20_quiz_concepts.md) | 2026-06-21 | ✅ |
 
 ---
 
@@ -50,7 +51,25 @@ task_logs/
 
 ## 当前会话
 
-**Step 19** — 前端扩展：间隔复习页面 + AI 问答页面
+**Step 20** — 后端 Quiz + Concept API + 前端出题页面 + 知识图谱可视化
+
+---
+
+## 2026-06-21 会话
+
+**完成的工作**:
+- ✅ Phase 1: 后端 Schema — quiz.py + concept.py
+- ✅ Phase 2: 后端 API 路由 — quizzes.py (7 endpoints) + concepts.py (8 endpoints) + main.py 注册
+- ✅ Phase 3: 后端测试 — test_quizzes.py (18 tests) + test_concepts.py (25 tests)
+- ✅ Phase 4: 前端 — types.ts 扩展 + vis-network 安装 + KnowledgeGraphCanvas 组件 + quiz 页面 + concepts 页面 + Navbar 更新
+- ✅ Phase 5: 验证 — Python 语法检查 6/6 通过 + Next.js build 12/12 pages 通过
+- ⏳ Docker 环境暂停（本机 Docker Desktop 未运行），pytest 验证待下次启动
+
+**关键发现**: Steps 8-16 虽然 PROJECT_TRACKER 标记为 ✅，但后端 API 路由和 Schema 实际不存在。Step 20 补全了 Quiz 和 Concept 模块的全栈实现。
+
+**结束位置**: Step 20 全部完成 ✅，Step 21 (补齐缺失后端 API) 待开始
+**Git 待提交**: Step 20 所有变更
+**下一步**: Step 21 — 补齐 Documents, ReviewCards, Dashboard, RAG QA, PlannerAgent 后端 API
 
 ---
 
