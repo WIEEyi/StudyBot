@@ -124,6 +124,8 @@ class QuizScoreResponse(BaseModel):
     """整批评分结果"""
 
     results: list[QuizResultResponse]
-    total: int = Field(description="总题数")
+    total: int = Field(description="提交总题数")
+    graded: int = Field(default=0, description="实际批改的题数（排除跳过的）")
+    skipped: int = Field(default=0, description="跳过的题数（不存在或无权限）")
     correct_count: int = Field(description="答对数")
-    score_percent: float = Field(description="得分百分比")
+    score_percent: float = Field(description="得分百分比（基于已批改题数）")

@@ -146,13 +146,20 @@ async def upload_document(
             detail=f"不支持的文件类型: {file_type}，仅支持 {ALLOWED_TYPES}",
         )
 
-    # 读取文件内容
-    file_bytes = await file.read()
-    if len(file_bytes) > settings.MAX_UPLOAD_SIZE:
-        raise HTTPException(
-            status_code=http_status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"文件过大，最大允许 {settings.MAX_UPLOAD_SIZE // (1024*1024)}MB",
-        )
+    # 流式读取文件内容（边读边检查大小，防止内存耗尽）
+    file_bytes = bytearray()
+    chunk_size = 1024 * 1024  # 每次读 1MB
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        file_bytes.extend(chunk)
+        if len(file_bytes) > settings.MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=http_status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"文件过大，最大允许 {settings.MAX_UPLOAD_SIZE // (1024*1024)}MB",
+            )
+    file_bytes = bytes(file_bytes)
 
     # 确保上传目录存在
     upload_dir = Path(settings.UPLOAD_DIR)

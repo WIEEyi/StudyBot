@@ -88,6 +88,7 @@ async def ask_question(
     2. 回退到关键词匹配（兼容无 Embedding 的场景）
     """
     # 尝试语义搜索
+    search_mode = "semantic"
     try:
         results = await semantic_search(
             query=request.question,
@@ -98,8 +99,9 @@ async def ask_question(
             threshold=request.threshold or 0.3,
         )
     except Exception as e:
-        logger.warning("语义搜索失败，回退到关键词匹配: %s", e)
+        logger.warning("语义搜索失败，回退到关键词匹配: %s", e, exc_info=True)
         results = []
+        search_mode = "keyword_fallback"
 
     # 如果语义搜索有结果，使用它
     if results:

@@ -58,11 +58,18 @@ async def reschedule_goal(
         )
 
     # 调用 Scheduler Service
-    report = await reschedule_goal_tasks(
-        goal_id=goal_id,
-        user_id=current_user.id,
-        db=db,
-        strategy=strategy,
-    )
+    try:
+        report = await reschedule_goal_tasks(
+            goal_id=goal_id,
+            user_id=current_user.id,
+            db=db,
+            strategy=strategy,
+        )
+    except Exception as e:
+        logger.error("计划重排失败: goal_id=%s, error=%s", goal_id, e, exc_info=True)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="计划重排失败，请稍后重试",
+        )
 
     return report

@@ -351,12 +351,14 @@ async def grade_quizzes(
 
     results: list[QuizResultResponse] = []
     correct_count = 0
+    skipped_ids: list[int] = []
 
     for sub in submissions:
         try:
             quiz = await _get_user_quiz(sub.quiz_id, current_user, db)
         except HTTPException:
-            # 题目不存在或无权限 — 跳过该题
+            # 题目不存在或无权限 — 记录跳过
+            skipped_ids.append(sub.quiz_id)
             continue
 
         correct_index = int(quiz.correct_answer)
@@ -376,20 +378,30 @@ async def grade_quizzes(
             )
         )
 
+    graded_total = len(results)
     total = len(submissions)
-    score_percent = round((correct_count / total) * 100, 1) if total > 0 else 0.0
+    score_percent = round((correct_count / graded_total) * 100, 1) if graded_total > 0 else 0.0
+
+    if skipped_ids:
+        logger.warning(
+            "批改跳过 %s 题 (不存在或无权限): ids=%s, user_id=%s",
+            len(skipped_ids), skipped_ids, current_user.id,
+        )
 
     logger.info(
-        "批改完成: %s/%s 正确 (%.1f%%), user_id=%s",
+        "批改完成: %s/%s 正确 (%.1f%%), 跳过 %s 题, user_id=%s",
         correct_count,
-        total,
+        graded_total,
         score_percent,
+        len(skipped_ids),
         current_user.id,
     )
 
     return QuizScoreResponse(
         results=results,
         total=total,
+        graded=graded_total,
+        skipped=len(skipped_ids),
         correct_count=correct_count,
         score_percent=score_percent,
     )

@@ -66,7 +66,8 @@ export default function ReviewPage() {
       const data = await get<ReviewCardListResponse>(`/review-cards?${params.toString()}`);
       setCards(data.items);
     } catch (err) {
-      setError("加载复习卡片失败");
+      if (err instanceof ApiError) setError(err.detail);
+      else setError("加载复习卡片失败，请稍后重试");
     } finally {
       setLoading(false);
     }

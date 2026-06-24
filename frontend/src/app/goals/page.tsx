@@ -35,7 +35,8 @@ export default function GoalsPage() {
       const data = await get<GoalListResponse>(`/goals${qs ? "?" + qs : ""}`);
       setGoals(data.items);
     } catch (err) {
-      setError("加载目标失败");
+      if (err instanceof ApiError) setError(err.detail);
+      else setError("加载目标失败，请稍后重试");
     } finally {
       setLoading(false);
     }

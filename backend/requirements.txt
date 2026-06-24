@@ -50,6 +50,7 @@ websockets==13.1                   # WebSocket 支持
 
 # --- 工具 ---
 python-dotenv==1.0.1               # 加载 .env 文件
+slowapi==0.1.9                     # API 限流中间件
 
 # --- 测试 ---
 pytest==8.3.3                      # 测试框架
