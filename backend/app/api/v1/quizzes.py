@@ -12,14 +12,9 @@
 """
 
 import logging
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, Field
-
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
 
 from app.config import get_settings
 from app.core.database import get_db
@@ -27,6 +22,7 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.quiz import Quiz
 from app.models.document import Document
+from app.services.quiz_service import generate_quizzes_with_llm, LLMQuizItem
 from app.schemas.quiz import (
     QuizCreate,
     QuizUpdate,
@@ -43,21 +39,6 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 router = APIRouter(prefix="/quizzes", tags=["测验"])
-
-
-# --- LLM 结构化输出模型 ---
-
-class LLMQuizItem(BaseModel):
-    """LLM 生成的单道测验题"""
-    question: str = Field(description="题目内容")
-    options: List[str] = Field(description="4 个选项", min_length=4, max_length=4)
-    correct_answer: int = Field(description="正确选项索引 (0-3)", ge=0, le=3)
-    explanation: str = Field(description="答案解析，解释为什么这个答案是正确的")
-
-
-class LLMQuizOutput(BaseModel):
-    """LLM 输出的完整测验题集"""
-    quizzes: List[LLMQuizItem] = Field(description="生成的测验题列表")
 
 
 # --- 辅助函数：检查测验归属 ---
@@ -285,19 +266,9 @@ async def generate_quizzes(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """AI 自动出题 — 基于文档内容使用 DeepSeek V4 Pro 生成测验题
-
-    流程:
-    1. 加载文档内容
-    2. 构造 LLM 提示词（含文档摘要 + 出题要求）
-    3. 调用 LLM 生成结构化题目
-    4. 保存到数据库
-    5. 返回生成的题目列表
-    """
-    # 校验文档归属
+    """AI 自动出题 — 基于文档内容使用 DeepSeek V4 Pro 生成测验题"""
     doc = await _verify_document_owner(request.document_id, current_user, db)
 
-    # 获取文档内容（截取前 3000 字符作为上下文）
     content = (doc.content or "")[:3000]
     if not content.strip():
         raise HTTPException(
@@ -310,46 +281,17 @@ async def generate_quizzes(
         request.document_id, doc.title, request.count, current_user.id,
     )
 
-    # 构造 LLM 提示词
-    system_prompt = """你是一个专业的教育内容生成器。你的任务是基于提供的学习材料，生成高质量的选择题测验。
-
-要求:
-1. 每道题必须有 4 个选项（A/B/C/D）
-2. 只有一个正确答案
-3. 题目应该测试对材料核心概念的理解，而非简单的记忆
-4. 选项之间应该有合理的区分度，干扰项要有一定迷惑性
-5. 每道题必须有清晰的答案解析
-6. correct_answer 是正确选项的索引（0=A, 1=B, 2=C, 3=D）
-7. 题目之间不要重复或过于相似
-8. 使用与原文相同的语言（如果原文是中文则出中文题，英文则出英文题）"""
-
-    user_prompt = f"""基于以下学习材料，生成 {request.count} 道选择题。
-
-文档标题: {doc.title}
-文档内容:
----
-{content}
----
-
-请生成 {request.count} 道高质量的选择题。"""
-
     try:
-        llm = ChatOpenAI(
-            model=settings.LLM_MODEL_PREMIUM,
-            openai_api_key=settings.LLM_API_KEY,
-            openai_api_base=settings.LLM_API_BASE,
-            temperature=0.8,
+        # 调用 Quiz Service
+        quiz_items = await generate_quizzes_with_llm(
+            doc_title=doc.title,
+            doc_content=content,
+            count=request.count,
         )
-        structured_llm = llm.with_structured_output(LLMQuizOutput)
-
-        response: LLMQuizOutput = await structured_llm.ainvoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt),
-        ])
 
         # 保存题目到数据库
         quiz_objects = []
-        for item in response.quizzes[:request.count]:  # 限制数量
+        for item in quiz_items:
             quiz = Quiz(
                 user_id=current_user.id,
                 document_id=request.document_id,

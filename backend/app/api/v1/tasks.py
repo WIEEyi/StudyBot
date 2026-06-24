@@ -214,8 +214,20 @@ async def update_task(
                 detail="无权关联此目标",
             )
 
+    # 保存旧状态，用于 completed_at 判断
+    old_status = task.status
+
     for field, value in update_data.items():
         setattr(task, field, value)
+
+    # 状态变更时自动管理 completed_at
+    if "status" in update_data:
+        from app.services.task_service import on_task_status_change
+        task.completed_at = on_task_status_change(
+            old_status=old_status,
+            new_status=update_data["status"],
+            current_completed_at=task.completed_at,
+        )
 
     await db.commit()
     await db.refresh(task)

@@ -1,0 +1,34 @@
+# StudyBot 后端生产镜像
+# 与开发镜像的区别: 不挂载源码、关闭 --reload、多阶段构建更小体积
+
+FROM python:3.11-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# 系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Python 依赖
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+# 复制应用代码（不再依赖 bind mount）
+COPY . .
+
+# 创建上传目录
+RUN mkdir -p /app/uploads
+
+EXPOSE 8000
+
+# 生产模式: gunicorn + uvicorn worker，4 进程
+CMD ["gunicorn", "app.main:app", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--workers", "4", \
+     "--bind", "0.0.0.0:8000", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

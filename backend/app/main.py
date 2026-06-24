@@ -101,6 +101,7 @@ from app.api.v1.review_cards import router as review_cards_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.qa import router as qa_router
 from app.api.v1.ws import websocket_plan
+from app.api.v1.scheduler import router as scheduler_router
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
@@ -112,6 +113,7 @@ app.include_router(documents_router, prefix="/api/v1")
 app.include_router(review_cards_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(qa_router, prefix="/api/v1")
+app.include_router(scheduler_router, prefix="/api/v1")
 
 # WebSocket 路由
 app.websocket("/api/v1/ws/plan")(websocket_plan)

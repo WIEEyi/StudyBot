@@ -21,6 +21,7 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.review_card import ReviewCard
+from app.services.sm2_service import sm2_calculate
 from app.schemas.review_card import (
     ReviewCardCreate,
     ReviewCardUpdate,
@@ -33,60 +34,6 @@ from app.schemas.review_card import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/review-cards", tags=["间隔复习"])
-
-
-# ===================== SM-2 算法 =====================
-
-def sm2_algorithm(
-    ease_factor: float,
-    interval: int,
-    repetitions: int,
-    rating: int,
-) -> tuple[float, int, int]:
-    """SM-2 间隔复习算法
-
-    参数:
-        ease_factor: 当前难度系数（默认 2.5，最低 1.3）
-        interval: 当前复习间隔（天）
-        repetitions: 连续正确次数
-        rating: 用户评分 (0-5)
-
-    返回:
-        (new_ease_factor, new_interval, new_repetitions)
-
-    算法逻辑:
-    - rating >= 3: 认为回忆正确
-      - 第 1 次正确: interval = 1 天
-      - 第 2 次正确: interval = 6 天
-      - 第 3+ 次: interval = round(interval * ease_factor)
-      - repetitions += 1
-    - rating < 3: 认为回忆失败
-      - repetitions 重置为 0
-      - interval 重置为 1 天
-    - ease_factor 调整:
-      EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-      最低不低于 1.3
-    """
-    # 更新 ease_factor
-    q = rating
-    new_ef = ease_factor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-    new_ef = max(1.3, new_ef)  # 最低 1.3
-
-    if rating >= 3:
-        # 回忆正确
-        if repetitions == 0:
-            new_interval = 1
-        elif repetitions == 1:
-            new_interval = 6
-        else:
-            new_interval = round(interval * new_ef)
-        new_repetitions = repetitions + 1
-    else:
-        # 回忆失败 → 重置
-        new_repetitions = 0
-        new_interval = 1
-
-    return new_ef, new_interval, new_repetitions
 
 
 # ===================== 辅助函数 =====================
@@ -262,8 +209,8 @@ async def review_card(
     old_interval = card.interval
     old_repetitions = card.repetitions
 
-    # 执行 SM-2 算法
-    new_ef, new_interval, new_repetitions = sm2_algorithm(
+    # 调用 SM-2 Service
+    new_ef, new_interval, new_repetitions, next_review_at = sm2_calculate(
         card.ease_factor, card.interval, card.repetitions, request.rating
     )
 
@@ -273,7 +220,7 @@ async def review_card(
     card.interval = new_interval
     card.repetitions = new_repetitions
     card.last_reviewed_at = now
-    card.next_review_at = now + timedelta(days=new_interval)
+    card.next_review_at = next_review_at
 
     await db.commit()
     await db.refresh(card)

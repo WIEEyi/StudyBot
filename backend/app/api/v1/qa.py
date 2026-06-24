@@ -4,9 +4,9 @@ RAG 问答路由
 提供的接口:
 - POST /qa/ask — 基于文档的语义问答（RAG）
 
-当前实现:
-- 基于 Document.content 的全文搜索 + 简单文本匹配
-- 后续可升级为 pgvector 语义搜索 + LLM 生成答案
+搜索策略:
+1. 优先使用 pgvector 语义搜索（需要文档已嵌入向量）
+2. 回退到关键词匹配（兼容无 Embedding API Key 的场景）
 """
 
 import logging
@@ -20,6 +20,7 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.document import Document
+from app.services.embedding_service import semantic_search
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -82,22 +83,55 @@ async def ask_question(
 ):
     """RAG 问答接口
 
-    当前为简易实现（关键词匹配），后续升级为 pgvector 语义搜索 + LLM。
-
-    流程:
-    1. 从数据库加载用户的文档（或指定文档）
-    2. 对每个文档的 content 进行相关性评分
-    3. 返回 top_k 个最相关的片段作为引用
-    4. 拼接引用内容生成答案
+    搜索策略:
+    1. 优先使用 pgvector 语义搜索（需要文档已生成 Embedding）
+    2. 回退到关键词匹配（兼容无 Embedding 的场景）
     """
-    # 加载文档
+    # 尝试语义搜索
+    try:
+        results = await semantic_search(
+            query=request.question,
+            user_id=current_user.id,
+            db=db,
+            document_id=request.document_id,
+            top_k=request.top_k,
+            threshold=request.threshold or 0.3,
+        )
+    except Exception as e:
+        logger.warning("语义搜索失败，回退到关键词匹配: %s", e)
+        results = []
+
+    # 如果语义搜索有结果，使用它
+    if results:
+        citations = [
+            CitationItem(
+                chunk_id=r["chunk_id"],
+                document_id=r["document_id"],
+                document_title=r["document_title"],
+                chunk_index=r["chunk_index"],
+                content=r["content"],
+                relevance=r["similarity"],
+            )
+            for r in results
+        ]
+
+        answer = f"根据你上传的文档，找到 {len(citations)} 个相关内容：\n\n"
+        for i, c in enumerate(citations, 1):
+            answer += f"**{i}. {c.document_title}**（相似度: {c.relevance}）\n{c.content}\n\n"
+        answer += "\n> 🔍 基于 pgvector 语义搜索"
+
+        return QAResponse(
+            question=request.question,
+            answer=answer,
+            citations=citations,
+        )
+
+    # 回退到关键词匹配
     conditions = [Document.user_id == current_user.id]
     if request.document_id is not None:
         conditions.append(Document.id == request.document_id)
 
-    result = await db.execute(
-        select(Document).where(*conditions)
-    )
+    result = await db.execute(select(Document).where(*conditions))
     documents = result.scalars().all()
 
     if not documents:
@@ -107,37 +141,32 @@ async def ask_question(
             citations=[],
         )
 
-    # 对每个文档评分
     scored: list[tuple[Document, float]] = []
     for doc in documents:
         score = _simple_search(doc.content or "", request.question)
         if score > 0:
             scored.append((doc, score))
 
-    # 按相关性排序，取 top_k
     scored.sort(key=lambda x: x[1], reverse=True)
     top_docs = scored[:request.top_k]
 
-    # 构建引用
     citations = []
-    context_parts = []
     for doc, score in top_docs:
-        # 截取内容前 500 字符作为引用片段
         snippet = (doc.content or "")[:500]
         citations.append(CitationItem(
+            chunk_id=0,
             document_id=doc.id,
             document_title=doc.title,
+            chunk_index=0,
             content=snippet,
             relevance=score,
         ))
-        context_parts.append(f"[{doc.title}]: {snippet}")
 
-    # 生成答案（简易版：拼接引用内容）
     if citations:
         answer = f"根据你上传的 {len(citations)} 份文档，以下是相关内容：\n\n"
         for i, c in enumerate(citations, 1):
             answer += f"**{i}. {c.document_title}**（相关度: {c.relevance}）\n{c.content}\n\n"
-        answer += "\n> 💡 当前为关键词匹配模式，配置 LLM_API_KEY 后可启用 AI 智能问答。"
+        answer += "\n> 💡 当前为关键词匹配模式。上传文档后运行 Embedding 可启用语义搜索。"
     else:
         answer = "在你的文档中没有找到与问题相关的内容。试试换一种方式提问。"
 

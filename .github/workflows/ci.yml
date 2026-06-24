@@ -1,0 +1,99 @@
+# StudyBot CI Pipeline
+# 触发: push 到 develop / main，或 PR 到这些分支
+# 流程: 代码检查 → Docker 构建 → pytest → 前端构建
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ============================================================
+  # 后端测试
+  # ============================================================
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: studybot
+          POSTGRES_PASSWORD: studybot123
+          POSTGRES_DB: studybot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run Alembic migrations
+        env:
+          DATABASE_URL: postgresql+psycopg2://studybot:studybot123@localhost:5432/studybot_test
+        run: |
+          cd backend
+          alembic upgrade head
+
+      - name: Run pytest
+        env:
+          DATABASE_URL: postgresql+asyncpg://studybot:studybot123@localhost:5432/studybot_test
+          REDIS_URL: redis://localhost:6379/0
+          APP_ENV: test
+          APP_DEBUG: false
+        run: |
+          cd backend
+          pytest -v --tb=short
+
+  # ============================================================
+  # 前端构建
+  # ============================================================
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Next.js
+        run: |
+          cd frontend
+          npx next build
+
+      - name: Run lint (if configured)
+        run: |
+          cd frontend
+          npx next lint || true
