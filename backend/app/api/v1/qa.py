@@ -137,7 +137,7 @@ async def ask_question(
         answer = f"根据你上传的 {len(citations)} 份文档，以下是相关内容：\n\n"
         for i, c in enumerate(citations, 1):
             answer += f"**{i}. {c.document_title}**（相关度: {c.relevance}）\n{c.content}\n\n"
-        answer += "\n> 💡 当前为关键词匹配模式，配置 OPENAI_API_KEY 后可启用 AI 智能问答。"
+        answer += "\n> 💡 当前为关键词匹配模式，配置 LLM_API_KEY 后可启用 AI 智能问答。"
     else:
         answer = "在你的文档中没有找到与问题相关的内容。试试换一种方式提问。"
 

@@ -157,7 +157,7 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 │  │              Celery Workers (async tasks)         │   │
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │           OpenAI API (LLM + Embedding)            │   │
+│  │        DeepSeek API (LLM) + OpenAI (Embedding)    │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -171,7 +171,7 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 | **ASGI Server** | Uvicorn | 0.30.6 | Server runtime |
 | **AI Agent** | LangGraph | 0.2.45 | Agent workflow orchestration |
 | **AI Framework** | LangChain | 0.3.7 | LLM integration |
-| **LLM** | OpenAI (compatible API) | - | GPT-4o-mini / GPT-4o |
+| **LLM** | DeepSeek V4 Pro (compatible API) | - | deepseek-chat |
 | **Vector Embedding** | OpenAI Embeddings | - | text-embedding-3-small |
 | **Database** | PostgreSQL 16 + pgvector | - | Primary storage + vector search |
 | **ORM** | SQLAlchemy 2.0 | 2.0.35 | Async database operations |
@@ -403,7 +403,7 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | Horizontal Scaling | Stateless FastAPI, multi-instance deployable |
 | Async Tasks | Celery + RabbitMQ, independent Worker scaling |
 | Config Management | pydantic-settings, supports .env and env vars |
-| AI Model Switching | Switch any OpenAI-compatible model via config |
+| AI Model Switching | Switch any OpenAI-compatible model via config (default: DeepSeek V4 Pro) |
 
 ### 6.4 Code Quality
 

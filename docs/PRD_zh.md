@@ -165,7 +165,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 │  │              Celery Workers (async tasks)         │   │
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │           OpenAI API (LLM + Embedding)            │   │
+│  │        DeepSeek API (LLM) + OpenAI (Embedding)    │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -179,7 +179,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | **ASGI 服务器** | Uvicorn | 0.30.6 | 服务运行 |
 | **AI Agent** | LangGraph | 0.2.45 | Agent 工作流编排 |
 | **AI 框架** | LangChain | 0.3.7 | LLM 集成 |
-| **LLM** | OpenAI (兼容 API) | - | GPT-4o-mini / GPT-4o |
+| **LLM** | DeepSeek V4 Pro (兼容 API) | - | deepseek-chat |
 | **向量嵌入** | OpenAI Embeddings | - | text-embedding-3-small |
 | **数据库** | PostgreSQL 16 + pgvector | - | 主存储 + 向量搜索 |
 | **ORM** | SQLAlchemy 2.0 | 2.0.35 | 异步数据库操作 |
@@ -411,7 +411,7 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | 水平扩展 | 无状态 FastAPI，可多实例部署 |
 | 异步任务 | Celery + RabbitMQ，独立 Worker 扩展 |
 | 配置管理 | pydantic-settings，支持 .env 和环境变量 |
-| AI 模型切换 | 通过配置切换 OpenAI 兼容的任何模型 |
+| AI 模型切换 | 通过配置切换任何 OpenAI 兼容模型（默认 DeepSeek V4 Pro） |
 
 ### 6.4 代码质量
 

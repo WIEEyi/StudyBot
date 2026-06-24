@@ -46,12 +46,14 @@ class Settings(BaseSettings):
     # refresh_token 有效期 7 天，用于免登录刷新 access_token
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # --- LLM (OpenAI 兼容接口) ---
-    OPENAI_API_KEY: str = "sk-your-api-key-here"
-    OPENAI_API_BASE: str = "https://api.openai.com/v1"
-    LLM_MODEL: str = "gpt-4o-mini"           # 轻量模型，用于意图路由
-    LLM_MODEL_PREMIUM: str = "gpt-4o"        # 强模型，用于 Agent 推理
-    EMBEDDING_MODEL: str = "text-embedding-3-small"  # 文本嵌入模型
+    # --- LLM (兼容 OpenAI 协议的任何模型: DeepSeek / OpenAI / Ollama 等) ---
+    LLM_API_KEY: str = "sk-your-api-key-here"
+    LLM_API_BASE: str = "https://api.deepseek.com"
+    LLM_MODEL: str = "deepseek-chat"          # 轻量模型，用于意图路由、简单任务
+    LLM_MODEL_PREMIUM: str = "deepseek-chat"  # 强模型，用于 Agent 推理、计划生成
+    EMBEDDING_MODEL: str = "text-embedding-3-small"  # 文本嵌入模型 (OpenAI)
+    EMBEDDING_API_KEY: str = ""   # 嵌入模型 API Key（留空则复用 LLM_API_KEY）
+    EMBEDDING_API_BASE: str = "https://api.openai.com/v1"  # 嵌入模型 API Base
 
     # --- Celery ---
     CELERY_BROKER_URL: str = "pyamqp://guest:guest@rabbitmq:5672//"

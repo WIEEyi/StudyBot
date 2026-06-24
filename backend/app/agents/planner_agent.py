@@ -139,8 +139,8 @@ async def generate_plan(state: PlannerState) -> PlannerState:
     try:
         llm = ChatOpenAI(
             model=settings.LLM_MODEL_PREMIUM,
-            openai_api_key=settings.OPENAI_API_KEY,
-            openai_api_base=settings.OPENAI_API_BASE,
+            openai_api_key=settings.LLM_API_KEY,
+            openai_api_base=settings.LLM_API_BASE,
             temperature=0.7,
         )
         structured_llm = llm.with_structured_output(PlanOutput)
