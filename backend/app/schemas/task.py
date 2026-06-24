@@ -45,6 +45,9 @@ class TaskResponse(BaseModel):
     due_date: Optional[datetime] = None
     status: str
     estimated_minutes: Optional[int] = None
+    milestone: Optional[str] = None
+    milestone_order: Optional[int] = None
+    completed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

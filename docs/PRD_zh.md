@@ -39,13 +39,13 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | 1 | 用户认证系统 (JWT) | ✅ 已完成 | P0 | Phase 1 |
 | 2 | 学习目标管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
 | 3 | 任务管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
-| 4 | AI 学习计划生成 (PlannerAgent) | 🔄 待开发 | P0 | Phase 1 |
-| 5 | 知识库 RAG 问答 (DigestAgent) | 📋 规划中 | P1 | Phase 2 |
-| 6 | 间隔复习 (SM-2 算法) | 📋 规划中 | P1 | Phase 2 |
-| 7 | 自动出题 (QuizAgent) | 📋 规划中 | P2 | Phase 2 |
-| 8 | 知识图谱可视化 | 📋 规划中 | P2 | Phase 3 |
+| 4 | AI 学习计划生成 (PlannerAgent) | ✅ 已完成 | P0 | Phase 1 |
+| 5 | 知识库 RAG 问答 (DigestAgent) | ✅ 已完成 | P1 | Phase 2 |
+| 6 | 间隔复习 (SM-2 算法) | ✅ 已完成 | P1 | Phase 2 |
+| 7 | 自动出题 (QuizAgent) | ✅ 已完成 | P2 | Phase 2 |
+| 8 | 知识图谱可视化 | ✅ 已完成 | P2 | Phase 3 |
 | 9 | 动态计划调整 (SchedulerAgent) | 📋 规划中 | P2 | Phase 3 |
-| 10 | 学习仪表盘 | 📋 规划中 | P2 | Phase 3 |
+| 10 | 学习仪表盘 | ✅ 已完成 | P2 | Phase 3 |
 
 ### 2.2 已完成功能详情
 

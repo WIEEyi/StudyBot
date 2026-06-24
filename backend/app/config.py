@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "pyamqp://guest:guest@rabbitmq:5672//"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/1"
 
+    # --- 文件上传 ---
+    UPLOAD_DIR: str = "/app/uploads"  # Docker 容器内的上传目录
+    MAX_UPLOAD_SIZE: int = 50 * 1024 * 1024  # 最大上传 50MB
+
     # --- CORS ---
     # 允许跨域的前端地址（开发时为 Next.js 默认端口 3000）
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]

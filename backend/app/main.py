@@ -96,6 +96,11 @@ from app.api.v1.goals import router as goals_router
 from app.api.v1.tasks import router as tasks_router
 from app.api.v1.quizzes import router as quizzes_router
 from app.api.v1.concepts import router as concepts_router
+from app.api.v1.documents import router as documents_router
+from app.api.v1.review_cards import router as review_cards_router
+from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.qa import router as qa_router
+from app.api.v1.ws import websocket_plan
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
@@ -103,6 +108,13 @@ app.include_router(goals_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(quizzes_router, prefix="/api/v1")
 app.include_router(concepts_router, prefix="/api/v1")
+app.include_router(documents_router, prefix="/api/v1")
+app.include_router(review_cards_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(qa_router, prefix="/api/v1")
+
+# WebSocket 路由
+app.websocket("/api/v1/ws/plan")(websocket_plan)
 
 # --- 健康检查接口 ---
 # 最简单的接口: 返回应用是否在运行

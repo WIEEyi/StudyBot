@@ -134,6 +134,44 @@ CI 通过 → 构建 Docker 镜像 → 推送到镜像仓库 → 部署到测试
 
 ---
 
+## 2026-06-24
+
+### Q7: 代理连接 GitHub 失败怎么办？
+
+**问**: 克隆仓库时 `git clone` 连接 GitHub 超时，代理端口也连不上。
+
+**答**: 排查步骤：
+1. 先确认代理服务器是否可达（`ping` 代理 IP）
+2. 检查端口是否开放（`nc -zv IP PORT`）
+3. 发现代理实际运行在本地 `127.0.0.1` 而非远程 IP
+4. 配置 git 使用本地代理：`git config --global http.proxy http://127.0.0.1:8890`
+
+**经验**: 代理客户端通常在本机运行并转发流量，所以 git 应该配 localhost 端口而非远程 IP。
+
+---
+
+### Q8: Alembic 初始迁移为空怎么办？
+
+**问**: `alembic upgrade head` 报错 `relation "tasks" does not exist`，初始迁移文件是空的（只有 `pass`）。
+
+**答**: 初始迁移为空是因为 `autogenerate` 时数据库已经有表（或模型没变化）。解决方案：
+1. 删除有问题的迁移文件
+2. 重新 `alembic revision --autogenerate -m "initial schema"`
+3. 这次会正确检测所有表和索引
+4. `alembic upgrade head` 应用
+
+---
+
+### Q9: FastAPI 路由 `/concepts/graph` 返回 422 怎么排查？
+
+**问**: 测试 `/api/v1/concepts/graph` 返回 422 Unprocessable Entity。
+
+**答**: 这是 FastAPI 路由优先级问题。当 `/{concept_id}` 路由在 `/graph` 之前注册时，FastAPI 会把 "graph" 当成 `concept_id` 尝试解析为 int，失败返回 422。
+
+**修复**: 把 `/graph` 路由移到 `/{concept_id}` 之前。FastAPI 路由匹配是按注册顺序的，具体路由必须在参数化路由之前。
+
+---
+
 ## 2026-06-19
 
 **本次会话无技术问答**。会话内容为 Step 19 前端扩展开发（间隔复习页面 + AI 问答页面），全程按 PROJECT_TRACKER.md 指令执行，无额外技术概念讨论。
