@@ -61,7 +61,7 @@
 | 项目名 | StudyBot |
 | 描述 | 个人学习与任务调度 AI Agent 应用 |
 | 技术栈 | FastAPI + LangGraph + React(Next.js) + PostgreSQL(pgvector) + Redis + RabbitMQ |
-| 仓库 | E:\StudyCode\pyProject |
+| 仓库 | https://github.com/WIEEyi/StudyBot.git |
 
 ## 核心功能
 

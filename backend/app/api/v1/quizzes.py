@@ -7,15 +7,21 @@
 - POST   /quizzes                — 创建测验题
 - PUT    /quizzes/{id}           — 更新测验题
 - DELETE /quizzes/{id}           — 删除测验题
-- POST   /quizzes/generate       — AI 自动出题（当前为 stub）
+- POST   /quizzes/generate       — AI 自动出题（DeepSeek V4 Pro）
 - POST   /quizzes/grade          — 批改答题
 """
 
 import logging
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, Field
 
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+
+from app.config import get_settings
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -34,8 +40,24 @@ from app.schemas.quiz import (
 )
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 router = APIRouter(prefix="/quizzes", tags=["测验"])
+
+
+# --- LLM 结构化输出模型 ---
+
+class LLMQuizItem(BaseModel):
+    """LLM 生成的单道测验题"""
+    question: str = Field(description="题目内容")
+    options: List[str] = Field(description="4 个选项", min_length=4, max_length=4)
+    correct_answer: int = Field(description="正确选项索引 (0-3)", ge=0, le=3)
+    explanation: str = Field(description="答案解析，解释为什么这个答案是正确的")
+
+
+class LLMQuizOutput(BaseModel):
+    """LLM 输出的完整测验题集"""
+    quizzes: List[LLMQuizItem] = Field(description="生成的测验题列表")
 
 
 # --- 辅助函数：检查测验归属 ---
@@ -255,7 +277,7 @@ async def delete_quiz(
     logger.info("删除测验题: id=%s, question=%s...", quiz_id, quiz.question[:30])
 
 
-# ===================== AI 生成（Stub） =====================
+# ===================== AI 生成（DeepSeek V4 Pro） =====================
 
 @router.post("/generate", response_model=QuizGenerateResponse)
 async def generate_quizzes(
@@ -263,48 +285,108 @@ async def generate_quizzes(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """AI 自动出题 — 基于文档内容生成测验题
+    """AI 自动出题 — 基于文档内容使用 DeepSeek V4 Pro 生成测验题
 
-    当前为 Stub 实现，返回示例题目。
-    AI Agent 系统就绪后将替换为真实的 LLM 生成逻辑。
+    流程:
+    1. 加载文档内容
+    2. 构造 LLM 提示词（含文档摘要 + 出题要求）
+    3. 调用 LLM 生成结构化题目
+    4. 保存到数据库
+    5. 返回生成的题目列表
     """
     # 校验文档归属
     doc = await _verify_document_owner(request.document_id, current_user, db)
 
-    logger.warning(
-        "AI 出题 stub: 文档 id=%s, 请求 %s 题，返回 mock 数据",
-        request.document_id,
-        request.count,
-    )
-
-    # 生成 mock 题目
-    mock_quizzes = []
-    for i in range(min(request.count, 10)):
-        mock_quizzes.append(
-            QuizResponse(
-                id=-(i + 1),  # 负数 ID 表示临时题目
-                user_id=current_user.id,
-                document_id=request.document_id,
-                question=f"示例问题 {i+1}：文档「{doc.title}」的主要内容是什么？",
-                options=[
-                    f"选项A：答案一",
-                    f"选项B：答案二",
-                    f"选项C：答案三",
-                    f"选项D：答案四",
-                ],
-                correct_answer=0,
-                explanation=f"这是 AI 生成的示例解析 #{i+1}。AI 出题功能尚未实现，此处为占位数据。",
-                source="ai_generated",
-                created_at=doc.created_at,  # 使用文档创建时间
-                updated_at=doc.created_at,
-            )
+    # 获取文档内容（截取前 3000 字符作为上下文）
+    content = (doc.content or "")[:3000]
+    if not content.strip():
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="文档内容为空，无法生成题目。请先上传有内容的文档。",
         )
 
-    return QuizGenerateResponse(
-        quizzes=mock_quizzes,
-        document_id=request.document_id,
-        count=len(mock_quizzes),
+    logger.info(
+        "AI 出题: 文档 id=%s (%s), 请求 %s 题, user_id=%s",
+        request.document_id, doc.title, request.count, current_user.id,
     )
+
+    # 构造 LLM 提示词
+    system_prompt = """你是一个专业的教育内容生成器。你的任务是基于提供的学习材料，生成高质量的选择题测验。
+
+要求:
+1. 每道题必须有 4 个选项（A/B/C/D）
+2. 只有一个正确答案
+3. 题目应该测试对材料核心概念的理解，而非简单的记忆
+4. 选项之间应该有合理的区分度，干扰项要有一定迷惑性
+5. 每道题必须有清晰的答案解析
+6. correct_answer 是正确选项的索引（0=A, 1=B, 2=C, 3=D）
+7. 题目之间不要重复或过于相似
+8. 使用与原文相同的语言（如果原文是中文则出中文题，英文则出英文题）"""
+
+    user_prompt = f"""基于以下学习材料，生成 {request.count} 道选择题。
+
+文档标题: {doc.title}
+文档内容:
+---
+{content}
+---
+
+请生成 {request.count} 道高质量的选择题。"""
+
+    try:
+        llm = ChatOpenAI(
+            model=settings.LLM_MODEL_PREMIUM,
+            openai_api_key=settings.LLM_API_KEY,
+            openai_api_base=settings.LLM_API_BASE,
+            temperature=0.8,
+        )
+        structured_llm = llm.with_structured_output(LLMQuizOutput)
+
+        response: LLMQuizOutput = await structured_llm.ainvoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt),
+        ])
+
+        # 保存题目到数据库
+        quiz_objects = []
+        for item in response.quizzes[:request.count]:  # 限制数量
+            quiz = Quiz(
+                user_id=current_user.id,
+                document_id=request.document_id,
+                question=item.question,
+                options=item.options,
+                correct_answer=str(item.correct_answer),
+                explanation=item.explanation,
+                source="ai_generated",
+            )
+            quiz_objects.append(quiz)
+
+        db.add_all(quiz_objects)
+        await db.commit()
+
+        # 刷新获取 ID 和时间戳
+        for q in quiz_objects:
+            await db.refresh(q)
+
+        logger.info(
+            "AI 出题完成: 文档 id=%s, 生成 %s 题",
+            request.document_id, len(quiz_objects),
+        )
+
+        return QuizGenerateResponse(
+            quizzes=[QuizResponse.model_validate(q) for q in quiz_objects],
+            document_id=request.document_id,
+            count=len(quiz_objects),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("AI 出题失败: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI 出题失败: {str(e)}",
+        )
 
 
 # ===================== 批改答题 =====================

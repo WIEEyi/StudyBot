@@ -354,11 +354,19 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | 5 | 用户认证 | 注册/登录/JWT | ✅ |
 | 6 | 数据模型 | 全部 8 个 ORM 模型 + Alembic | ✅ |
 | 7 | Goals + Tasks CRUD | 目标和任务的完整 REST API | ✅ |
-| 8 | PlannerAgent | AI 学习计划生成 + WebSocket | 🔄 下一步 |
+| 8 | PlannerAgent | AI 学习计划生成 + WebSocket | ✅ |
 
 ### Phase 2: 智能学习辅助
 
 **目标**: 知识库 + 复习 + 测验功能
+
+| Step | 模块 | 描述 | 状态 |
+|------|------|------|------|
+| 9 | 文档上传 | 文件上传 + 文本提取 | ✅ |
+| 10 | 向量嵌入 | 文本分块 + OpenAI Embedding + pgvector 存储 | ✅ |
+| 11 | RAG 问答 | 语义搜索 + AI 问答（DigestAgent） | ✅ |
+| 12 | 间隔复习 | SM-2 算法实现 + 复习提醒 | ✅ |
+| 13 | 自动出题 | 基于材料 AI 生成测验（QuizAgent） | ✅ |
 
 | Step | 模块 | 描述 |
 |------|------|------|
