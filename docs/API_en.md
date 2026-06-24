@@ -725,6 +725,45 @@ Multiple calls on the same day accumulate values.
 
 ---
 
+### 3.6 Schedule Adjustment (Scheduler) — Step 22
+
+#### POST /api/v1/goals/{goal_id}/reschedule — Smart Reschedule Tasks
+
+**Headers**: `Authorization: Bearer <access_token>`
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| goal_id | integer | Goal ID |
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| strategy | string | No | balanced | Reschedule strategy: balanced/aggressive/relaxed |
+
+**Strategy Description**:
+- `balanced`: By priority (high=1-3d, medium=4-7d, low=8-14d)
+- `aggressive`: All tasks compressed to 7 days
+- `relaxed`: All tasks spread to 30 days
+
+**Success Response** (200):
+```json
+{
+  "goal_id": 1,
+  "total_pending": 5,
+  "rescheduled": 5,
+  "overdue": 3,
+  "strategy": "balanced",
+  "message": "Rescheduled 5 tasks (3 overdue), strategy: balanced"
+}
+```
+
+**Error Responses**: `401` Unauthorized / `403` Forbidden / `404` Not Found / `422` Invalid strategy
+
+---
+
 ## 4. New Module API Documentation Template
 
 > Use this template when writing API documentation for new modules.

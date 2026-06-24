@@ -777,6 +777,49 @@ Access Token 有效期 30 分钟，过期后使用 `/api/v1/auth/refresh` 刷新
 
 ---
 
+### 3.6 计划调整模块 (Scheduler) — Step 22
+
+#### POST /api/v1/goals/{goal_id}/reschedule — 智能重排任务
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| goal_id | integer | 目标 ID |
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| strategy | string | 否 | balanced | 重排策略: balanced/aggressive/relaxed |
+
+**策略说明**:
+- `balanced`: 按优先级分配（high=1-3天, medium=4-7天, low=8-14天）
+- `aggressive`: 所有任务压缩到 7 天内
+- `relaxed`: 所有任务分散到 30 天内
+
+**成功响应** (200):
+```json
+{
+  "goal_id": 1,
+  "total_pending": 5,
+  "rescheduled": 5,
+  "overdue": 3,
+  "strategy": "balanced",
+  "message": "已重排 5 个任务（3 个过期），策略: balanced"
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `403` — 目标不属于当前用户
+- `404` — 目标不存在
+- `422` — 无效的策略值
+
+---
+
 ## 4. 新模块接口文档模板
 
 > 以下为开发新模块时填写接口文档的模板。

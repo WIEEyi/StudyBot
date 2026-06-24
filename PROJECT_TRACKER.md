@@ -130,9 +130,9 @@ pyProject/
 ## 当前状态
 
 - **阶段**: Phase 3 完成 ✅
-- **步骤**: Step 22 完成 ✅
+- **步骤**: Step 22 + 全栈改进完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-24 (Step 22 前端全量对接验证通过)
+- **最后更新**: 2026-06-24 (DeepSeek 适配 + P2/P3 完善 + E2E 测试 + 全栈异常处理审计)
 
 ---
 
@@ -166,6 +166,11 @@ pyProject/
 | 2026-06-21 | Step 20 | 后端 Quiz + Concept API (15 个端点 + 43 个测试) + 前端出题页面 + 知识图谱可视化 ✅ |
 | 2026-06-24 | Step 21 | 补齐全部缺失后端 API: Documents + ReviewCards + Dashboard + QA + WebSocket (37 个新测试, 132/132 通过) ✅ |
 | 2026-06-24 | Step 22 | 前端全量对接验证: 14 API 端点 + 12 页面编译 + 9 路由全部通过 ✅ |
+| 2026-06-24 | 架构 | DeepSeek V4 Pro 全局适配 + Quiz AI 出题接 LLM + 前端 PlannerAgent UI + Auth 测试 ✅ |
+| 2026-06-24 | P2 | Services 层重构 + SchedulerAgent + Celery 异步任务 + RAG pgvector 升级 ✅ |
+| 2026-06-24 | P3 | 生产部署(docker-compose.prod + Nginx + CI) + 前端 UX 组件(EmptyState/ErrorBoundary/Skeleton) ✅ |
+| 2026-06-24 | E2E | Playwright 测试框架搭建 + 15 个 E2E 测试全部通过 ✅ |
+| 2026-06-24 | 审计 | 全栈异常处理审计: 12 项修复(全局异常处理器/限流/流式上传/错误消息统一) ✅ |
 
 ### 🔄 进行中
 
@@ -175,13 +180,16 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 23 | 见详细规划（前端优化 / RAG 升级 / LLM 集成 / SchedulerAgent / 生产部署） |
+| Step 23 | 前端完善: 响应式适配 + WebSocket 进度展示 + 空状态组件接入 |
+| Step 24 | RAG 完善: 文档上传后自动触发 Embedding (Celery) + 语义搜索验证 |
+| Step 25 | LLM 集成: QA 模块接入 DeepSeek 生成答案 + 对话历史持久化 |
 
 ### 💡 待办改进
 
 - [ ] 前端热力图改用 Recharts 日历热力图组件
 - [ ] 复习页可添加批量导入功能（从文档自动生成卡片）
 - [ ] QA 页可添加对话历史持久化
+- [ ] E2E 测试修复 2 个 flaky 导航时序问题
 - [ ] AI 出题 stub 替换为真实 LLM 调用
 
 ---
