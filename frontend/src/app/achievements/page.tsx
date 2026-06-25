@@ -13,10 +13,12 @@ import { isAuthenticated } from "@/lib/auth";
 import {
   getAchievementProgress,
   checkAchievements,
-  AchievementProgress,
-  AchievementCheckResponse,
   ApiError,
 } from "@/lib/api";
+import type {
+  AchievementProgress,
+  AchievementCheckResponse,
+} from "@/lib/types";
 import AchievementCard from "@/components/AchievementCard";
 
 const CATEGORIES = [

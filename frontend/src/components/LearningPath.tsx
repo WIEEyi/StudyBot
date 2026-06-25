@@ -9,10 +9,12 @@
 import { useState } from "react";
 import {
   generateLearningPath,
-  LearningPathResponse,
-  LearningPathGenerateRequest,
   ApiError,
 } from "@/lib/api";
+import type {
+  LearningPathResponse,
+  LearningPathGenerateRequest,
+} from "@/lib/types";
 
 const ACTION_ICONS: Record<string, string> = {
   review: "🃏",
