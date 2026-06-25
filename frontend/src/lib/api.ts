@@ -190,3 +190,83 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 export async function getCurrentUser(): Promise<UserInfo> {
   return get<UserInfo>("/users/me");
 }
+
+// -- 成就 API --
+
+export interface Achievement {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  rarity: string;
+  threshold: number;
+}
+
+export interface AchievementListResponse {
+  items: Achievement[];
+  earned_codes: string[];
+  total: number;
+  earned_count: number;
+}
+
+export interface AchievementProgress {
+  achievement: Achievement;
+  current_progress: number;
+  threshold: number;
+  percent: number;
+  is_earned: boolean;
+}
+
+export interface AchievementCheckResponse {
+  new_achievements: Achievement[];
+  count: number;
+}
+
+/** 获取成就列表 */
+export async function getAchievements(): Promise<AchievementListResponse> {
+  return get<AchievementListResponse>("/achievements");
+}
+
+/** 获取成就进度 */
+export async function getAchievementProgress(): Promise<AchievementProgress[]> {
+  return get<AchievementProgress[]>("/achievements/progress");
+}
+
+/** 检查并颁发新成就 */
+export async function checkAchievements(): Promise<AchievementCheckResponse> {
+  return post<AchievementCheckResponse>("/achievements/check");
+}
+
+// -- 学习路径 API --
+
+export interface LearningPathStep {
+  step_number: number;
+  title: string;
+  description: string;
+  action_type: string;
+  priority: string;
+  estimated_minutes: number;
+}
+
+export interface LearningPathResponse {
+  title: string;
+  summary: string;
+  steps: LearningPathStep[];
+  total_estimated_minutes: number;
+  focus_areas: string[];
+}
+
+export interface LearningPathGenerateRequest {
+  focus?: string;
+  document_id?: number;
+  max_steps?: number;
+}
+
+/** 生成学习路径 */
+export async function generateLearningPath(
+  data: LearningPathGenerateRequest
+): Promise<LearningPathResponse> {
+  return post<LearningPathResponse>("/learning-path/generate", data);
+}

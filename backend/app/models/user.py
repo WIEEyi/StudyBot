@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.models.quiz import Quiz
     from app.models.concept import Concept
     from app.models.study_session import StudySession
+    from app.models.user_achievement import UserAchievement
 
 
 class User(Base, TimestampMixin):
@@ -56,6 +57,7 @@ class User(Base, TimestampMixin):
     quizzes: Mapped[List["Quiz"]] = relationship("Quiz", back_populates="user")
     concepts: Mapped[List["Concept"]] = relationship("Concept", back_populates="user")
     study_sessions: Mapped[List["StudySession"]] = relationship("StudySession", back_populates="user")
+    user_achievements: Mapped[List["UserAchievement"]] = relationship("UserAchievement", back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"

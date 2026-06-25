@@ -35,7 +35,10 @@ test.describe("文档管理", () => {
     await authPage.goto("/documents");
     await authPage.waitForLoadState("networkidle");
 
-    // 2. 上传文件
+    // 等待页面主体加载完成（file input 是 hidden 的，不能等 visible）
+    await expect(authPage.locator("main").first()).toBeVisible({ timeout: 10000 });
+
+    // 2. 上传文件（input[type=file] 是 hidden 的，用 force 模式）
     const fileInput = authPage.locator('input[type="file"]');
     await fileInput.setInputFiles(testFilePath);
 

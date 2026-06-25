@@ -29,13 +29,19 @@ from app.schemas.auth import (
     TokenResponse,
 )
 
+from app.config import get_settings
+
+_auth_settings = get_settings()
+_REGISTER_LIMIT = "100/minute" if _auth_settings.APP_ENV == "development" else "5/minute"
+_LOGIN_LIMIT = "100/minute" if _auth_settings.APP_ENV == "development" else "10/minute"
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
+@limiter.limit(_REGISTER_LIMIT)
 async def register(
     request: Request,
     body: UserRegisterRequest,
@@ -93,7 +99,7 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
+@limiter.limit(_LOGIN_LIMIT)
 async def login(
     request: Request,
     body: UserLoginRequest,
@@ -140,7 +146,7 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
-@limiter.limit("10/minute")
+@limiter.limit(_LOGIN_LIMIT)
 async def refresh_token(
     request: Request,
     body: RefreshTokenRequest,

@@ -18,15 +18,18 @@ test.describe("AI 学习计划生成", () => {
     await authPage.getByRole("button", { name: /创建|保存/ }).click();
     await authPage.waitForLoadState("networkidle");
 
-    // 2. 进入目标详情
+    // 等待目标出现
+    await expect(authPage.getByText(goalTitle)).toBeVisible({ timeout: 10000 });
+
+    // 2. 进入详情
     await authPage.getByText(goalTitle).click();
     await authPage.waitForLoadState("networkidle");
 
-    // 3. 验证 AI 生成按钮存在
+    // 3. 验证 AI 生成按钮
     const aiButton = authPage.getByRole("button", { name: /AI|生成计划|✨/ });
     await expect(aiButton).toBeVisible({ timeout: 10000 });
 
-    // 4. 验证进度区域初始状态
+    // 4. 验证进度区域
     await expect(authPage.getByText(/AI 学习计划/).first()).toBeVisible();
   });
 
@@ -40,6 +43,8 @@ test.describe("AI 学习计划生成", () => {
     await authPage.getByPlaceholder(/标题/).fill(goalTitle);
     await authPage.getByRole("button", { name: /创建|保存/ }).click();
     await authPage.waitForLoadState("networkidle");
+
+    await expect(authPage.getByText(goalTitle)).toBeVisible({ timeout: 10000 });
 
     await authPage.getByText(goalTitle).click();
     await authPage.waitForLoadState("networkidle");

@@ -23,6 +23,12 @@ import StatCard from "@/components/StatCard";
 import HeatmapChart from "@/components/HeatmapChart";
 import StreakBadge from "@/components/StreakBadge";
 import WeeklyInsight from "@/components/WeeklyInsight";
+import LearningPath from "@/components/LearningPath";
+import AchievementCard from "@/components/AchievementCard";
+import {
+  getAchievementProgress,
+  AchievementProgress,
+} from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,6 +36,7 @@ export default function DashboardPage() {
   const [heatmap, setHeatmap] = useState<HeatmapResponse | null>(null);
   const [heatmapError, setHeatmapError] = useState(false);
   const [streak, setStreak] = useState<StreakResponse | null>(null);
+  const [achievements, setAchievements] = useState<AchievementProgress[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -42,12 +49,14 @@ export default function DashboardPage() {
 
     async function loadData() {
       try {
-        const [overviewData, streakData] = await Promise.all([
+        const [overviewData, streakData, achievementData] = await Promise.all([
           get<DashboardOverview>("/dashboard/overview"),
           get<StreakResponse>("/dashboard/streak"),
+          getAchievementProgress(),
         ]);
         setOverview(overviewData);
         setStreak(streakData);
+        setAchievements(achievementData);
       } catch (err) {
         if (err instanceof ApiError) setError(err.detail);
         else setError("加载数据失败，请稍后重试");
@@ -173,6 +182,33 @@ export default function DashboardPage() {
 
         {/* AI 周报 */}
         <WeeklyInsight />
+
+        {/* AI 学习路径 */}
+        <div className="mt-6">
+          <LearningPath />
+        </div>
+
+        {/* 成就进度摘要 */}
+        {achievements.length > 0 && (
+          <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                🏆 最近成就
+              </h3>
+              <button
+                onClick={() => router.push("/achievements")}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                查看全部 →
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {achievements.slice(0, 6).map((item) => (
+                <AchievementCard key={item.achievement.code} data={item} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

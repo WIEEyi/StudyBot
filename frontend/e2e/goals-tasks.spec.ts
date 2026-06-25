@@ -28,7 +28,7 @@ test.describe("目标管理", () => {
   });
 
   test("进入目标详情页", async ({ authPage }) => {
-    // 1. 先创建一个目标
+    // 1. 导航到目标页并创建目标
     await authPage.goto("/goals");
     await authPage.waitForLoadState("networkidle");
 
@@ -38,13 +38,15 @@ test.describe("目标管理", () => {
     await authPage.getByRole("button", { name: /创建|保存/ }).click();
     await authPage.waitForLoadState("networkidle");
 
+    // 等待新目标出现
+    await expect(authPage.getByText(goalTitle)).toBeVisible({ timeout: 10000 });
+
     // 2. 点击进入详情
     await authPage.getByText(goalTitle).click();
     await authPage.waitForLoadState("networkidle");
 
-    // 3. 验证详情页正常展示
+    // 3. 验证详情页
     await expect(authPage.locator("main")).toBeVisible();
-    // 详情页应有目标标题
     await expect(authPage.getByText(goalTitle).first()).toBeVisible();
   });
 

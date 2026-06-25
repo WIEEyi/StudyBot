@@ -15,6 +15,8 @@ from app.models.quiz import Quiz
 from app.models.concept import Concept
 from app.models.concept_relation import ConceptRelation
 from app.models.study_session import StudySession
+from app.models.achievement import Achievement
+from app.models.user_achievement import UserAchievement
 
 __all__ = [
     "Base",
@@ -29,4 +31,6 @@ __all__ = [
     "Concept",
     "ConceptRelation",
     "StudySession",
+    "Achievement",
+    "UserAchievement",
 ]
