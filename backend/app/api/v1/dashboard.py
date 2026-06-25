@@ -24,6 +24,7 @@ from app.models.review_card import ReviewCard
 from app.models.document import Document
 from app.models.concept import Concept
 from app.models.study_session import StudySession
+from app.services.streak_service import get_current_streak_info, calculate_longest_streak
 from app.schemas.dashboard import (
     DashboardOverview,
     HeatmapItem,
@@ -191,79 +192,20 @@ async def get_streak(
 ):
     """计算连续学习天数
 
-    逻辑:
-    - 有学习会话记录的日期视为"活跃日"
-    - current_streak: 从今天（或昨天）往回数连续活跃天数
-    - longest_streak: 历史最长连续天数
+    使用共享的 streak_service 模块，避免重复实现。
     """
-    result = await db.execute(
-        select(StudySession.study_date)
-        .where(StudySession.user_id == current_user.id)
-        .distinct()
-        .order_by(StudySession.study_date.desc())
-    )
-    active_dates = sorted(
-        {row[0] for row in result.all()}, reverse=True
-    )
+    current = await get_current_streak_info(db, current_user.id)
+    longest = await calculate_longest_streak(db, current_user.id)
 
-    if not active_dates:
+    if current.count == 0 and longest.count == 0:
         return StreakResponse()
 
-    # 计算 current streak
-    today = date.today()
-    current_streak = 0
-    current_start = None
-
-    check_date = today
-    for d in active_dates:
-        if d == check_date:
-            current_streak += 1
-            current_start = d
-            check_date -= timedelta(days=1)
-        elif d < check_date:
-            break
-
-    # 如果今天没有记录，检查昨天
-    if current_streak == 0 and active_dates[0] == today - timedelta(days=1):
-        check_date = today - timedelta(days=1)
-        for d in active_dates:
-            if d == check_date:
-                current_streak += 1
-                current_start = d
-                check_date -= timedelta(days=1)
-            elif d < check_date:
-                break
-
-    # 计算 longest streak
-    sorted_dates = sorted(active_dates)  # 升序
-    longest_streak = 1
-    longest_start = sorted_dates[0]
-    longest_end = sorted_dates[0]
-    temp_streak = 1
-    temp_start = sorted_dates[0]
-
-    for i in range(1, len(sorted_dates)):
-        if sorted_dates[i] - sorted_dates[i - 1] == timedelta(days=1):
-            temp_streak += 1
-        else:
-            if temp_streak > longest_streak:
-                longest_streak = temp_streak
-                longest_start = temp_start
-                longest_end = sorted_dates[i - 1]
-            temp_streak = 1
-            temp_start = sorted_dates[i]
-
-    if temp_streak > longest_streak:
-        longest_streak = temp_streak
-        longest_start = temp_start
-        longest_end = sorted_dates[-1]
-
     return StreakResponse(
-        current_streak=current_streak,
-        current_start_date=current_start.isoformat() if current_start else None,
-        longest_streak=longest_streak,
-        longest_start_date=longest_start.isoformat() if longest_streak > 0 else None,
-        longest_end_date=longest_end.isoformat() if longest_streak > 0 else None,
+        current_streak=current.count,
+        current_start_date=current.start_date.isoformat() if current.start_date else None,
+        longest_streak=longest.count,
+        longest_start_date=longest.start_date.isoformat() if longest.count > 0 else None,
+        longest_end_date=(longest.start_date + timedelta(days=longest.count - 1)).isoformat() if longest.count > 0 and longest.start_date else None,
     )
 
 

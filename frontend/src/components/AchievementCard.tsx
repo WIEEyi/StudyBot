@@ -7,7 +7,7 @@
  * 已获得 → 高亮；未获得 → 灰色 + 进度条。
  */
 
-import { AchievementProgress } from "@/lib/api";
+import type { AchievementProgress } from "@/lib/types";
 
 interface AchievementCardProps {
   data: AchievementProgress;

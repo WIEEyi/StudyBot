@@ -27,8 +27,8 @@ import LearningPath from "@/components/LearningPath";
 import AchievementCard from "@/components/AchievementCard";
 import {
   getAchievementProgress,
-  AchievementProgress,
 } from "@/lib/api";
+import type { AchievementProgress } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();

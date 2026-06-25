@@ -16,7 +16,6 @@ Achievement Service
 """
 
 import logging
-from datetime import date, timedelta
 from typing import List, Tuple
 
 from sqlalchemy import select, func
@@ -31,8 +30,12 @@ from app.models.quiz import Quiz
 from app.models.review_card import ReviewCard
 from app.models.document import Document
 from app.models.concept import Concept
+from app.services.streak_service import calculate_current_streak
 
 logger = logging.getLogger(__name__)
+
+# 进程级缓存：首次 seed 成功后标记，后续请求跳过 20 条 SELECT
+_seeds_ensured: bool = False
 
 
 # ===================== 成就定义 =====================
@@ -70,8 +73,13 @@ ACHIEVEMENT_DEFS = [
 async def ensure_achievement_seeds(db: AsyncSession) -> None:
     """确保成就定义已写入数据库（幂等操作）
 
-    在成就接口首次调用时执行，避免手动 seed。
+    使用进程级缓存：首次 seed 成功后跳过后续调用，
+    避免每次请求执行 20 条 SELECT 查询。
     """
+    global _seeds_ensured
+    if _seeds_ensured:
+        return
+
     for defn in ACHIEVEMENT_DEFS:
         result = await db.execute(
             select(Achievement).where(Achievement.code == defn["code"])
@@ -81,53 +89,17 @@ async def ensure_achievement_seeds(db: AsyncSession) -> None:
 
     try:
         await db.commit()
+        _seeds_ensured = True  # seed 成功后标记缓存
     except IntegrityError:
         await db.rollback()
-
-
-async def _get_current_streak(db: AsyncSession, user_id: int) -> int:
-    """计算当前连续学习天数"""
-    result = await db.execute(
-        select(StudySession.study_date)
-        .where(StudySession.user_id == user_id)
-        .distinct()
-        .order_by(StudySession.study_date.desc())
-    )
-    active_dates = sorted({row[0] for row in result.all()}, reverse=True)
-
-    if not active_dates:
-        return 0
-
-    today = date.today()
-    streak = 0
-    check_date = today
-
-    for d in active_dates:
-        if d == check_date:
-            streak += 1
-            check_date -= timedelta(days=1)
-        elif d < check_date:
-            break
-
-    # 如果今天没有记录，检查昨天
-    if streak == 0 and active_dates and active_dates[0] == today - timedelta(days=1):
-        check_date = today - timedelta(days=1)
-        for d in active_dates:
-            if d == check_date:
-                streak += 1
-                check_date -= timedelta(days=1)
-            elif d < check_date:
-                break
-
-    return streak
 
 
 async def _get_progress_map(db: AsyncSession, user_id: int) -> dict:
     """获取用户所有成就相关的进度值"""
     progress = {}
 
-    # 连续学习天数
-    progress["streak"] = await _get_current_streak(db, user_id)
+    # 连续学习天数（使用共享模块）
+    progress["streak"] = await calculate_current_streak(db, user_id)
 
     # 完成任务数
     completed_tasks = (await db.execute(
