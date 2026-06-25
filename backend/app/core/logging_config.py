@@ -3,7 +3,7 @@
 
 提供统一的应用日志配置，支持:
 1. 控制台输出（stdout，Docker logs 可见）
-2. 文件输出（/app/logs/ 目录，实际落盘 E:\StudyCode\pyProject\backend\logs\）
+2. 文件输出（/app/logs/ 目录）
 3. 日志级别由 APP_DEBUG 配置控制
 
 使用方式:

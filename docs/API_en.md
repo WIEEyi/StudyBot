@@ -2,7 +2,7 @@
 
 > **Base URL**: `http://localhost:8000/api/v1`
 > **Version**: v1.0
-> **Last Updated**: 2026-06-02
+> **Last Updated**: 2026-06-24
 > **Authentication**: Bearer Token (JWT)
 
 ---
@@ -547,94 +547,220 @@ Access Token expires in 30 minutes. Use `/api/v1/auth/refresh` to renew.
 
 ---
 
-## 3. Planned Endpoints
+## 3. Implemented Endpoints (Steps 8-21)
 
 ---
 
-### 3.1 PlannerAgent — AI Learning Plan Generation (Step 8) 🔄
-
-#### WS /api/v1/ws/plan — WebSocket Plan Generation
-
-**Description**: Establish WebSocket connection, trigger AI plan generation, receive real-time progress.
-
-**Connection**:
-```
-ws://localhost:8000/api/v1/ws/plan?token=<access_token>
-```
-
-**Authentication**: JWT access_token passed via query param `token`. Token validity and user status are verified during connection handshake.
-
-**Client → Server Messages**:
-
-| action | Description | Request Body |
-|--------|-------------|-------------|
-| `generate_plan` | Trigger plan generation | `{"action": "generate_plan", "goal_id": 1}` |
-
-**Server → Client Event Stream**:
-
-| Event | Description | Data Format |
-|-------|-------------|-------------|
-| `thinking` | Agent starts analyzing goal | `{"event": "thinking", "message": "Analyzing learning goal 'xxx'..."}` |
-| `milestone` | A milestone is generated | `{"event": "milestone", "data": {"title": "Phase 1: Python Basics", "order": 1}}` |
-| `task` | A task is generated | `{"event": "task", "data": {"title": "Install Python", "priority": "high", "estimated_minutes": 30, "milestone": "Phase 1: Python Basics"}}` |
-| `complete` | Plan generation complete | `{"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}` |
-| `error` | An error occurred | `{"event": "error", "message": "Generation failed: Invalid API key"}` |
-
-**Error Codes**:
-
-| Scenario | WebSocket Close Code | Message |
-|----------|---------------------|---------|
-| No token / invalid token | 4001 | "Authentication failed: invalid or missing token" |
-| User not found or disabled | 4001 | "Authentication failed: user not found or disabled" |
-| Invalid goal_id | 4002 (via error event) | "Goal not found: id=xxx" |
-| Goal not owned by user | 4003 (via error event) | "Forbidden: not your goal" |
-| LLM call failure | 4004 (via error event) | "AI generation failed: {details}" |
-| Invalid action | 4005 (via error event) | "Invalid action: {action}" |
-| Connection timeout (30s inactivity) | 4000 | "Connection timeout" |
-
-**Full Message Flow Example**:
-```
-// 1. Client connects
-→ ws://localhost:8000/api/v1/ws/plan?token=eyJhbG...
-
-// 2. Client triggers generation
-→ {"action": "generate_plan", "goal_id": 1}
-
-// 3. Server streams events
-← {"event": "thinking", "message": "Analyzing learning goal 'Learn Python Full-Stack'..."}
-← {"event": "milestone", "data": {"title": "Phase 1: Python Basics", "order": 1}}
-← {"event": "task", "data": {"title": "Install Python", "priority": "high", "estimated_minutes": 30, "milestone": "Phase 1: Python Basics"}}
-← {"event": "task", "data": {"title": "Learn variables and data types", "priority": "high", "estimated_minutes": 60, "milestone": "Phase 1: Python Basics"}}
-← {"event": "milestone", "data": {"title": "Phase 2: Web Development Intro", "order": 2}}
-← {"event": "task", "data": {"title": "Learn HTTP basics", "priority": "medium", "estimated_minutes": 45, "milestone": "Phase 2: Web Development Intro"}}
-← {"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}
-
-// 4. Connection closes
-```
-
----
-
-### 3.2 Knowledge Base (Step 9-11)
+### 3.1 Documents — Step 21
 
 #### POST /api/v1/documents — Upload Document
-#### GET /api/v1/documents — List Documents
-#### GET /api/v1/documents/{id} — Document Detail
-#### DELETE /api/v1/documents/{id} — Delete Document
-#### POST /api/v1/qa/ask — RAG Q&A
-#### GET /api/v1/review-cards — List Review Cards
-#### POST /api/v1/review-cards — Create Review Card
-#### PATCH /api/v1/review-cards/{id}/review — Submit Review Rating
-#### POST /api/v1/quizzes/generate — AI Generate Quiz
-#### GET /api/v1/quizzes — List Quizzes
+
+**Headers**: `Authorization: Bearer <access_token>`
+
+**Request**: `multipart/form-data`, field name `file`
+
+**Supported formats**: PDF / Markdown (.md) / TXT / HTML
+
+**Success Response** (201):
+```json
+{
+  "id": 1, "user_id": 1, "title": "Python Notes",
+  "file_type": "pdf", "content": "Extracted text...",
+  "created_at": "2026-06-24T10:00:00Z", "updated_at": "2026-06-24T10:00:00Z"
+}
+```
+
+**Errors**: `400` unsupported type / `413` file too large (>50MB)
 
 ---
 
-### 3.3 Knowledge Graph (Step 12+)
+#### GET /api/v1/documents — List Documents
 
-#### GET /api/v1/concepts — List Concepts
-#### POST /api/v1/concepts — Create Concept
-#### POST /api/v1/concepts/{id}/relations — Create Concept Relation
-#### GET /api/v1/graph — Get Knowledge Graph Data
+**Query**: `file_type` (filter), `offset`, `limit`
+
+---
+
+#### GET /api/v1/documents/{id} — Document Detail
+
+---
+
+#### DELETE /api/v1/documents/{id} — Delete Document (also removes disk file)
+
+---
+
+### 3.2 Review Cards (SM-2 Spaced Repetition) — Step 21
+
+#### GET /api/v1/review-cards — List Cards
+
+**Query**: `due_filter` (overdue/today/all), `offset`, `limit`
+
+---
+
+#### POST /api/v1/review-cards — Create Card
+
+**Request Body**:
+```json
+{ "front": "What is Python?", "back": "A high-level language", "document_id": 1 }
+```
+
+---
+
+#### PUT /api/v1/review-cards/{id} — Update Card
+
+---
+
+#### DELETE /api/v1/review-cards/{id} — Delete Card
+
+---
+
+#### POST /api/v1/review-cards/{id}/review — SM-2 Rating
+
+**Request Body**:
+```json
+{ "rating": 4 }
+```
+
+**Success Response** (200):
+```json
+{
+  "card_id": 1, "rating": 4,
+  "old_ease_factor": 2.5, "new_ease_factor": 2.6,
+  "old_interval": 0, "new_interval": 1,
+  "old_repetitions": 0, "new_repetitions": 1,
+  "next_review_at": "2026-06-25T10:00:00Z"
+}
+```
+
+---
+
+### 3.3 Dashboard — Step 21
+
+#### GET /api/v1/dashboard/overview — Statistics Overview
+
+**Success Response** (200):
+```json
+{
+  "total_goals": 5, "active_goals": 3, "completed_goals": 2,
+  "total_tasks": 25, "completed_tasks": 10, "todo_tasks": 8, "in_progress_tasks": 7,
+  "total_review_cards": 50, "due_review_cards": 12,
+  "total_documents": 3, "total_concepts": 15,
+  "total_study_hours": 12.5, "total_study_days": 8,
+  "today_tasks_completed": 3, "today_cards_reviewed": 10
+}
+```
+
+---
+
+#### GET /api/v1/dashboard/heatmap — Heatmap Data
+
+**Query**: `start_date` (YYYY-MM-DD), `end_date` (YYYY-MM-DD)
+
+**Success Response** (200):
+```json
+{
+  "items": [{ "date": "2026-06-20", "duration_minutes": 60, "tasks_completed": 3, "cards_reviewed": 10 }],
+  "start_date": "2026-06-01", "end_date": "2026-06-24"
+}
+```
+
+---
+
+#### GET /api/v1/dashboard/streak — Consecutive Study Days
+
+**Success Response** (200):
+```json
+{
+  "current_streak": 5, "current_start_date": "2026-06-20",
+  "longest_streak": 12, "longest_start_date": "2026-06-01", "longest_end_date": "2026-06-12"
+}
+```
+
+---
+
+#### POST /api/v1/dashboard/session — Record Study Session
+
+**Request Body**:
+```json
+{ "duration_minutes": 60, "tasks_completed": 3, "cards_reviewed": 10 }
+```
+
+Multiple calls on the same day accumulate values.
+
+---
+
+### 3.4 RAG Q&A — Step 21
+
+#### POST /api/v1/qa/ask — Semantic Q&A
+
+**Request Body**:
+```json
+{ "question": "What is Python?", "document_id": 1, "top_k": 5 }
+```
+
+**Success Response** (200):
+```json
+{
+  "question": "What is Python?",
+  "answer": "Based on your 2 documents, here is relevant content:...",
+  "citations": [
+    { "document_id": 1, "document_title": "Python Notes", "content": "...", "relevance": 0.75 }
+  ]
+}
+```
+
+---
+
+### 3.5 WebSocket — PlannerAgent (Step 8)
+
+#### WS /api/v1/ws/plan — AI Learning Plan Generation
+
+**Connection**: `ws://localhost:8000/api/v1/ws/plan?token=<access_token>`
+
+**Client Sends**:
+```json
+{ "action": "generate_plan", "goal_id": 1 }
+```
+
+**Server Pushes**: `thinking` | `milestone` | `task` | `complete` | `error`
+
+---
+
+### 3.6 Schedule Adjustment (Scheduler) — Step 22
+
+#### POST /api/v1/goals/{goal_id}/reschedule — Smart Reschedule Tasks
+
+**Headers**: `Authorization: Bearer <access_token>`
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| goal_id | integer | Goal ID |
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| strategy | string | No | balanced | Reschedule strategy: balanced/aggressive/relaxed |
+
+**Strategy Description**:
+- `balanced`: By priority (high=1-3d, medium=4-7d, low=8-14d)
+- `aggressive`: All tasks compressed to 7 days
+- `relaxed`: All tasks spread to 30 days
+
+**Success Response** (200):
+```json
+{
+  "goal_id": 1,
+  "total_pending": 5,
+  "rescheduled": 5,
+  "overdue": 3,
+  "strategy": "balanced",
+  "message": "Rescheduled 5 tasks (3 overdue), strategy: balanced"
+}
+```
+
+**Error Responses**: `401` Unauthorized / `403` Forbidden / `404` Not Found / `422` Invalid strategy
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Base URL**: `http://localhost:8000/api/v1`
 > **版本**: v1.0
-> **最后更新**: 2026-06-02
+> **最后更新**: 2026-06-24
 > **认证方式**: Bearer Token (JWT)
 
 ---
@@ -547,94 +547,276 @@ Access Token 有效期 30 分钟，过期后使用 `/api/v1/auth/refresh` 刷新
 
 ---
 
-## 3. 待开发接口
+## 3. 已实现接口（Step 8-21 新增）
 
 ---
 
-### 3.1 PlannerAgent — AI 学习计划生成 (Step 8) 🔄
-
-#### WS /api/v1/ws/plan — WebSocket 学习计划生成
-
-**描述**: 建立 WebSocket 连接，触发 AI 生成学习计划，实时接收生成进度。
-
-**连接方式**:
-```
-ws://localhost:8000/api/v1/ws/plan?token=<access_token>
-```
-
-**认证**: JWT access_token 通过 query param `token` 传入。连接建立时验证 token 有效性和用户状态。
-
-**客户端 → 服务端消息**:
-
-| action | 说明 | 请求体 |
-|--------|------|--------|
-| `generate_plan` | 触发生成学习计划 | `{"action": "generate_plan", "goal_id": 1}` |
-
-**服务端 → 客户端事件流**:
-
-| 事件 | 说明 | 数据格式 |
-|------|------|----------|
-| `thinking` | Agent 开始分析目标 | `{"event": "thinking", "message": "正在分析学习目标「xxx」..."}` |
-| `milestone` | 生成一个里程碑 | `{"event": "milestone", "data": {"title": "阶段一：Python 基础", "order": 1}}` |
-| `task` | 生成一个任务 | `{"event": "task", "data": {"title": "安装 Python 环境", "priority": "high", "estimated_minutes": 30, "milestone": "阶段一：Python 基础"}}` |
-| `complete` | 计划生成完成 | `{"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}` |
-| `error` | 发生错误 | `{"event": "error", "message": "生成失败：API 密钥无效"}` |
-
-**错误码**:
-
-| 场景 | WebSocket 关闭码 | 消息 |
-|------|-----------------|------|
-| 无 token / token 无效 | 4001 | "认证失败：请提供有效的 access token" |
-| 用户不存在或已禁用 | 4001 | "认证失败：用户不存在或已禁用" |
-| goal_id 无效 | 4002 (通过 error 事件) | "目标不存在: id=xxx" |
-| Goal 不属于当前用户 | 4003 (通过 error 事件) | "无权操作此目标" |
-| LLM 调用失败 | 4004 (通过 error 事件) | "AI 生成失败：{错误详情}" |
-| 无效 action | 4005 (通过 error 事件) | "无效的操作: {action}" |
-| 连接超时 (30s 无消息) | 4000 | "连接超时" |
-
-**完整消息流程示例**:
-```
-// 1. 客户端建立连接
-→ ws://localhost:8000/api/v1/ws/plan?token=eyJhbG...
-
-// 2. 客户端触发生成
-→ {"action": "generate_plan", "goal_id": 1}
-
-// 3. 服务端流式推送
-← {"event": "thinking", "message": "正在分析学习目标「学习 Python 全栈开发」..."}
-← {"event": "milestone", "data": {"title": "阶段一：Python 基础", "order": 1}}
-← {"event": "task", "data": {"title": "安装 Python 环境", "priority": "high", "estimated_minutes": 30, "milestone": "阶段一：Python 基础"}}
-← {"event": "task", "data": {"title": "学习变量和数据类型", "priority": "high", "estimated_minutes": 60, "milestone": "阶段一：Python 基础"}}
-← {"event": "milestone", "data": {"title": "阶段二：Web 开发入门", "order": 2}}
-← {"event": "task", "data": {"title": "学习 HTTP 协议基础", "priority": "medium", "estimated_minutes": 45, "milestone": "阶段二：Web 开发入门"}}
-← {"event": "complete", "data": {"total_tasks": 15, "total_minutes": 720}}
-
-// 4. 连接关闭
-```
-
----
-
-### 3.2 知识库模块 (Step 9-11)
+### 3.1 文档管理模块 (Documents) — Step 21
 
 #### POST /api/v1/documents — 上传文档
-#### GET /api/v1/documents — 文档列表
-#### GET /api/v1/documents/{id} — 文档详情
-#### DELETE /api/v1/documents/{id} — 删除文档
-#### POST /api/v1/qa/ask — RAG 问答
-#### GET /api/v1/review-cards — 复习卡片列表
-#### POST /api/v1/review-cards — 创建复习卡片
-#### PATCH /api/v1/review-cards/{id}/review — 提交复习评分
-#### POST /api/v1/quizzes/generate — AI 自动出题
-#### GET /api/v1/quizzes — 测验列表
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**请求体**: `multipart/form-data`，字段名 `file`
+
+**支持格式**: PDF / Markdown (.md) / TXT / HTML
+
+**成功响应** (201):
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "title": "Python学习笔记",
+  "file_type": "pdf",
+  "file_path": "/app/uploads/abc123_Python学习笔记.pdf",
+  "content": "提取的文本内容...",
+  "created_at": "2026-06-24T10:00:00Z",
+  "updated_at": "2026-06-24T10:00:00Z"
+}
+```
+
+**错误响应**: `400` 文件类型不支持 / `413` 文件过大(>50MB)
 
 ---
 
-### 3.3 知识图谱模块 (Step 12+)
+#### GET /api/v1/documents — 文档列表
 
-#### GET /api/v1/concepts — 概念列表
-#### POST /api/v1/concepts — 创建概念
-#### POST /api/v1/concepts/{id}/relations — 创建概念关系
-#### GET /api/v1/graph — 获取知识图谱数据
+**查询参数**: `file_type`(过滤), `offset`, `limit`
+
+**成功响应** (200): 标准分页格式
+
+---
+
+#### GET /api/v1/documents/{id} — 文档详情
+
+**成功响应** (200): 同上传响应
+
+---
+
+#### DELETE /api/v1/documents/{id} — 删除文档
+
+**成功响应** (204): 无响应体（同时删除磁盘文件）
+
+---
+
+### 3.2 间隔复习模块 (ReviewCards) — Step 21
+
+#### GET /api/v1/review-cards — 卡片列表
+
+**查询参数**: `due_filter`(overdue/today/all), `offset`, `limit`
+
+---
+
+#### POST /api/v1/review-cards — 创建卡片
+
+**请求体**:
+```json
+{
+  "front": "什么是 Python?",
+  "back": "一种高级编程语言",
+  "document_id": 1
+}
+```
+
+---
+
+#### PUT /api/v1/review-cards/{id} — 更新卡片
+
+---
+
+#### DELETE /api/v1/review-cards/{id} — 删除卡片
+
+---
+
+#### POST /api/v1/review-cards/{id}/review — SM-2 评分
+
+**请求体**:
+```json
+{ "rating": 4 }
+```
+
+**成功响应** (200):
+```json
+{
+  "card_id": 1,
+  "rating": 4,
+  "old_ease_factor": 2.5,
+  "new_ease_factor": 2.6,
+  "old_interval": 0,
+  "new_interval": 1,
+  "old_repetitions": 0,
+  "new_repetitions": 1,
+  "next_review_at": "2026-06-25T10:00:00Z"
+}
+```
+
+---
+
+### 3.3 学习仪表盘模块 (Dashboard) — Step 21
+
+#### GET /api/v1/dashboard/overview — 统计概览
+
+**成功响应** (200):
+```json
+{
+  "total_goals": 5,
+  "active_goals": 3,
+  "completed_goals": 2,
+  "total_tasks": 25,
+  "completed_tasks": 10,
+  "todo_tasks": 8,
+  "in_progress_tasks": 7,
+  "total_review_cards": 50,
+  "due_review_cards": 12,
+  "total_documents": 3,
+  "total_concepts": 15,
+  "total_study_hours": 12.5,
+  "total_study_days": 8,
+  "today_tasks_completed": 3,
+  "today_cards_reviewed": 10
+}
+```
+
+---
+
+#### GET /api/v1/dashboard/heatmap — 热力图
+
+**查询参数**: `start_date`(YYYY-MM-DD), `end_date`(YYYY-MM-DD)
+
+**成功响应** (200):
+```json
+{
+  "items": [
+    { "date": "2026-06-20", "duration_minutes": 60, "tasks_completed": 3, "cards_reviewed": 10 }
+  ],
+  "start_date": "2026-06-01",
+  "end_date": "2026-06-24"
+}
+```
+
+---
+
+#### GET /api/v1/dashboard/streak — 连续学习天数
+
+**成功响应** (200):
+```json
+{
+  "current_streak": 5,
+  "current_start_date": "2026-06-20",
+  "longest_streak": 12,
+  "longest_start_date": "2026-06-01",
+  "longest_end_date": "2026-06-12"
+}
+```
+
+---
+
+#### POST /api/v1/dashboard/session — 记录学习会话
+
+**请求体**:
+```json
+{
+  "duration_minutes": 60,
+  "tasks_completed": 3,
+  "cards_reviewed": 10
+}
+```
+
+同一天多次调用会累加。
+
+---
+
+### 3.4 RAG 问答模块 (QA) — Step 21
+
+#### POST /api/v1/qa/ask — 语义问答
+
+**请求体**:
+```json
+{
+  "question": "什么是 Python?",
+  "document_id": 1,
+  "top_k": 5
+}
+```
+
+**成功响应** (200):
+```json
+{
+  "question": "什么是 Python?",
+  "answer": "根据你上传的 2 份文档，以下是相关内容：...",
+  "citations": [
+    {
+      "document_id": 1,
+      "document_title": "Python学习笔记",
+      "content": "Python 是一种高级编程语言...",
+      "relevance": 0.75
+    }
+  ]
+}
+```
+
+---
+
+### 3.5 WebSocket — PlannerAgent (Step 8)
+
+#### WS /api/v1/ws/plan — AI 学习计划生成
+
+**连接方式**: `ws://localhost:8000/api/v1/ws/plan?token=<access_token>`
+
+**客户端发送**:
+```json
+{ "action": "generate_plan", "goal_id": 1 }
+```
+
+**服务端推送事件**:
+- `thinking` — 分析中
+- `milestone` — 里程碑生成
+- `task` — 任务生成
+- `complete` — 完成
+- `error` — 错误
+
+---
+
+### 3.6 计划调整模块 (Scheduler) — Step 22
+
+#### POST /api/v1/goals/{goal_id}/reschedule — 智能重排任务
+
+**请求头**: `Authorization: Bearer <access_token>`
+
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| goal_id | integer | 目标 ID |
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| strategy | string | 否 | balanced | 重排策略: balanced/aggressive/relaxed |
+
+**策略说明**:
+- `balanced`: 按优先级分配（high=1-3天, medium=4-7天, low=8-14天）
+- `aggressive`: 所有任务压缩到 7 天内
+- `relaxed`: 所有任务分散到 30 天内
+
+**成功响应** (200):
+```json
+{
+  "goal_id": 1,
+  "total_pending": 5,
+  "rescheduled": 5,
+  "overdue": 3,
+  "strategy": "balanced",
+  "message": "已重排 5 个任务（3 个过期），策略: balanced"
+}
+```
+
+**错误响应**:
+- `401` — 未认证
+- `403` — 目标不属于当前用户
+- `404` — 目标不存在
+- `422` — 无效的策略值
 
 ---
 

@@ -8,9 +8,11 @@
 """
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.rate_limiter import limiter
 from app.core.database import get_db
 from app.core.security import (
     hash_password,
@@ -27,14 +29,22 @@ from app.schemas.auth import (
     TokenResponse,
 )
 
+from app.config import get_settings
+
+_auth_settings = get_settings()
+_REGISTER_LIMIT = "100/minute" if _auth_settings.APP_ENV == "development" else "5/minute"
+_LOGIN_LIMIT = "100/minute" if _auth_settings.APP_ENV == "development" else "10/minute"
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(_REGISTER_LIMIT)
 async def register(
-    request: UserRegisterRequest,
+    request: Request,
+    body: UserRegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):
     """用户注册
@@ -47,7 +57,7 @@ async def register(
     """
 
     # 检查邮箱是否已注册
-    result = await db.execute(select(User).where(User.email == request.email))
+    result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -55,7 +65,7 @@ async def register(
         )
 
     # 检查用户名是否已占用
-    result = await db.execute(select(User).where(User.username == request.username))
+    result = await db.execute(select(User).where(User.username == body.username))
     if result.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -64,13 +74,20 @@ async def register(
 
     # 创建用户
     user = User(
-        email=request.email,
-        username=request.username,
-        hashed_password=hash_password(request.password),
+        email=body.email,
+        username=body.username,
+        hashed_password=hash_password(body.password),
     )
     db.add(user)
-    await db.commit()
-    await db.refresh(user)  # 获取数据库生成的 id 和时间戳
+    try:
+        await db.commit()
+        await db.refresh(user)  # 获取数据库生成的 id 和时间戳
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="该邮箱或用户名已被注册",
+        )
 
     logger.info("新用户注册: id=%s, email=%s", user.id, user.email)
 
@@ -82,8 +99,10 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit(_LOGIN_LIMIT)
 async def login(
-    request: UserLoginRequest,
+    request: Request,
+    body: UserLoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
     """用户登录
@@ -95,7 +114,7 @@ async def login(
     4. 签发 token 并返回
     """
     # 查找用户
-    result = await db.execute(select(User).where(User.email == request.email))
+    result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
 
     if user is None:
@@ -105,7 +124,7 @@ async def login(
         )
 
     # 验证密码
-    if not verify_password(request.password, user.hashed_password):
+    if not verify_password(body.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="邮箱或密码错误",
@@ -127,8 +146,10 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit(_LOGIN_LIMIT)
 async def refresh_token(
-    request: RefreshTokenRequest,
+    request: Request,
+    body: RefreshTokenRequest,
     db: AsyncSession = Depends(get_db),
 ):
     """刷新 access_token
@@ -137,7 +158,7 @@ async def refresh_token(
     同时检查 refresh token 中的用户是否仍然存在且活跃。
     """
     # 解码 refresh token
-    payload = decode_token(request.refresh_token)
+    payload = decode_token(body.refresh_token)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

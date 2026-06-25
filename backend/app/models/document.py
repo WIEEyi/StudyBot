@@ -4,13 +4,14 @@ Document 文档模型
 用户上传的学习资料，用于 RAG 知识库检索。
 """
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.document_chunk import DocumentChunk
 
 
 class Document(Base, TimestampMixin):
@@ -36,6 +37,9 @@ class Document(Base, TimestampMixin):
 
     # --- 关系 ---
     user: Mapped["User"] = relationship("User", back_populates="documents")
+    chunks: Mapped[List["DocumentChunk"]] = relationship(
+        "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Document(id={self.id}, title={self.title}, type={self.file_type})>"

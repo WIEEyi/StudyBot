@@ -39,13 +39,13 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 | 1 | User Authentication (JWT) | ✅ Complete | P0 | Phase 1 |
 | 2 | Learning Goal Management (CRUD) | ✅ Complete | P0 | Phase 1 |
 | 3 | Task Management (CRUD) | ✅ Complete | P0 | Phase 1 |
-| 4 | AI Learning Plan Generation (PlannerAgent) | 🔄 In Progress | P0 | Phase 1 |
-| 5 | Knowledge Base RAG Q&A (DigestAgent) | 📋 Planned | P1 | Phase 2 |
-| 6 | Spaced Repetition (SM-2 Algorithm) | 📋 Planned | P1 | Phase 2 |
-| 7 | Auto Quiz Generation (QuizAgent) | 📋 Planned | P2 | Phase 2 |
-| 8 | Knowledge Graph Visualization | 📋 Planned | P2 | Phase 3 |
+| 4 | AI Learning Plan Generation (PlannerAgent) | ✅ Complete | P0 | Phase 1 |
+| 5 | Knowledge Base RAG Q&A (DigestAgent) | ✅ Complete | P1 | Phase 2 |
+| 6 | Spaced Repetition (SM-2 Algorithm) | ✅ Complete | P1 | Phase 2 |
+| 7 | Auto Quiz Generation (QuizAgent) | ✅ Complete | P2 | Phase 2 |
+| 8 | Knowledge Graph Visualization | ✅ Complete | P2 | Phase 3 |
 | 9 | Dynamic Schedule Adjustment (SchedulerAgent) | 📋 Planned | P2 | Phase 3 |
-| 10 | Learning Dashboard | 📋 Planned | P2 | Phase 3 |
+| 10 | Learning Dashboard | ✅ Complete | P2 | Phase 3 |
 
 ### 2.2 Completed Features Detail
 
@@ -185,7 +185,7 @@ Each node pushes progress events via WebSocket during execution.
 │  │              Celery Workers (async tasks)         │   │
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │           OpenAI API (LLM + Embedding)            │   │
+│  │        DeepSeek API (LLM) + OpenAI (Embedding)    │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -194,12 +194,12 @@ Each node pushes progress events via WebSocket during execution.
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| **Frontend** | React + Next.js | TBD | User interface |
+| **Frontend** | React + Next.js | 16.2.7 | User interface |
 | **Backend Framework** | FastAPI | 0.115.0 | REST API + WebSocket |
 | **ASGI Server** | Uvicorn | 0.30.6 | Server runtime |
 | **AI Agent** | LangGraph | 0.2.45 | Agent workflow orchestration |
 | **AI Framework** | LangChain | 0.3.7 | LLM integration |
-| **LLM** | OpenAI (compatible API) | - | GPT-4o-mini / GPT-4o |
+| **LLM** | DeepSeek V4 Pro (compatible API) | - | deepseek-chat |
 | **Vector Embedding** | OpenAI Embeddings | - | text-embedding-3-small |
 | **Database** | PostgreSQL 16 + pgvector | - | Primary storage + vector search |
 | **ORM** | SQLAlchemy 2.0 | 2.0.35 | Async database operations |
@@ -374,17 +374,19 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | 5 | User Authentication | Register/Login/JWT | ✅ |
 | 6 | Data Models | All 8 ORM models + Alembic | ✅ |
 | 7 | Goals + Tasks CRUD | Full REST API for goals and tasks | ✅ |
-| 8 | PlannerAgent | AI learning plan generation + WebSocket | 🔄 Next |
+| 8 | PlannerAgent | AI learning plan generation + WebSocket | ✅ |
 
 ### Phase 2: Intelligent Learning Assistance
 
 **Goal**: Knowledge base + review + quiz features
 
-| Step | Module | Description |
-|------|--------|-------------|
-| 9 | Document Upload | File upload + text extraction |
-| 10 | Vector Embedding | Text chunking + OpenAI Embedding + pgvector storage |
-| 11 | RAG Q&A | Semantic search + AI Q&A (DigestAgent) |
+| Step | Module | Description | Status |
+|------|--------|-------------|--------|
+| 9 | Document Upload | File upload + text extraction | ✅ |
+| 10 | Vector Embedding | Text chunking + OpenAI Embedding + pgvector storage | ✅ |
+| 11 | RAG Q&A | Semantic search + AI Q&A (DigestAgent) | ✅ |
+| 12 | Spaced Repetition | SM-2 algorithm + review reminders | ✅ |
+| 13 | Auto Quiz | AI quiz generation from materials (QuizAgent) | ✅ |
 | 12 | Spaced Repetition | SM-2 algorithm + review reminders |
 | 13 | Auto Quiz | AI-generated quizzes from materials (QuizAgent) |
 
@@ -431,7 +433,7 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | Horizontal Scaling | Stateless FastAPI, multi-instance deployable |
 | Async Tasks | Celery + RabbitMQ, independent Worker scaling |
 | Config Management | pydantic-settings, supports .env and env vars |
-| AI Model Switching | Switch any OpenAI-compatible model via config |
+| AI Model Switching | Switch any OpenAI-compatible model via config (default: DeepSeek V4 Pro) |
 
 ### 6.4 Code Quality
 

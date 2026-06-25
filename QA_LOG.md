@@ -133,3 +133,82 @@ CI 通过 → 构建 Docker 镜像 → 推送到镜像仓库 → 部署到测试
 结论：只拆 TASK_LOG 就够了。
 
 ---
+
+## 2026-06-24
+
+### Q7: 代理连接 GitHub 失败怎么办？
+
+**问**: 克隆仓库时 `git clone` 连接 GitHub 超时，代理端口也连不上。
+
+**答**: 排查步骤：
+1. 先确认代理服务器是否可达（`ping` 代理 IP）
+2. 检查端口是否开放（`nc -zv IP PORT`）
+3. 发现代理实际运行在本地 `127.0.0.1` 而非远程 IP
+4. 配置 git 使用本地代理：`git config --global http.proxy http://127.0.0.1:8890`
+
+**经验**: 代理客户端通常在本机运行并转发流量，所以 git 应该配 localhost 端口而非远程 IP。
+
+---
+
+### Q8: Alembic 初始迁移为空怎么办？
+
+**问**: `alembic upgrade head` 报错 `relation "tasks" does not exist`，初始迁移文件是空的（只有 `pass`）。
+
+**答**: 初始迁移为空是因为 `autogenerate` 时数据库已经有表（或模型没变化）。解决方案：
+1. 删除有问题的迁移文件
+2. 重新 `alembic revision --autogenerate -m "initial schema"`
+3. 这次会正确检测所有表和索引
+4. `alembic upgrade head` 应用
+
+---
+
+### Q9: FastAPI 路由 `/concepts/graph` 返回 422 怎么排查？
+
+**问**: 测试 `/api/v1/concepts/graph` 返回 422 Unprocessable Entity。
+
+**答**: 这是 FastAPI 路由优先级问题。当 `/{concept_id}` 路由在 `/graph` 之前注册时，FastAPI 会把 "graph" 当成 `concept_id` 尝试解析为 int，失败返回 422。
+
+**修复**: 把 `/graph` 路由移到 `/{concept_id}` 之前。FastAPI 路由匹配是按注册顺序的，具体路由必须在参数化路由之前。
+
+---
+
+## 2026-06-24
+
+### Q10: E2E 测试是什么？
+
+**问**: 你知道 e2e 吗
+
+**答**: E2E (End-to-End) 测试模拟真实用户从前端到后端的完整操作流程。与单元测试（测单个函数）和集成测试（测多模块协作）不同，E2E 测试覆盖完整的用户链路：打开浏览器 → 注册 → 创建目标 → AI 生成计划 → 上传文档 → 提问 → 验证回答。本项目使用 Playwright 框架，15 个 E2E 测试覆盖 auth/goals/documents/qa/review/quiz/planner 7 个核心流程。
+
+---
+
+### Q11: 异常处理审计发现了哪些问题？
+
+**答**: 按严重程度分三级：
+
+**🔴 严重 (3)**:
+1. 无全局异常处理器 → 未捕获异常泄露堆栈信息
+2. 注册接口无 IntegrityError 兜底 → 并发请求暴露 DB schema
+3. 24 处 db.commit() 无 rollback 保护 → 异常时 session 脏状态
+
+**🟡 重要 (5)**:
+4. 无 API 限流 → 暴力破解 + LLM 额度耗尽风险
+5. 文件上传全量读入内存再检查大小 → 内存耗尽攻击
+6. QA 语义搜索异常静默吞掉 → 运维无法发现故障
+7. Scheduler 端点无异常处理 → 未处理 500
+8. 前端 5xx 原始错误文本 → 用户不友好
+
+**🟢 改进 (4)**:
+9. Quiz 批改静默跳过不存在的题目 → 分数不准
+10. Dashboard 热力图加载失败无提示
+11. 前端错误消息风格不一致（硬编码 vs ApiError.detail）
+12. CORS 配置过于宽松 (allow_methods=["*"])
+
+---
+
+### Q12: 为什么限流器导致测试全部失败？
+
+**问**: 添加 slowapi 限流后 137 个测试级联报错
+
+**答**: 限流器按 IP 地址计 key，所有测试请求来自同一 IP (localhost)，注册端点限制 5次/分钟。前几个测试用完配额后，后续测试全部返回 429 Too Many Requests。修复方案：在 conftest.py 中设置 `os.environ["APP_ENV"] = "test"`，限流器检测到测试环境时自动禁用 (`enabled=False`)。
+

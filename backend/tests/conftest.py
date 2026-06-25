@@ -19,6 +19,9 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# 设置测试环境（必须在 app 导入之前）
+os.environ["APP_ENV"] = "test"
+
 import uuid
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport

@@ -41,10 +41,10 @@ async def get_db() -> "AsyncSession":
 
     用法: 在 FastAPI 路由中用 Depends(get_db) 注入
 
-    async with 确保:
-    1. 进入时获取一个会话
-    2. 退出时自动关闭会话（归还连接到连接池）
-    3. 如果处理过程抛出异常，会话也会正确关闭
+    异常安全:
+    - 发生异常时自动回滚，确保 session 不留脏数据
+    - async with 确保连接始终被归还到连接池
+    - 路由函数应显式调用 db.commit() 提交变更
 
     Example:
         @router.get("/items")
@@ -55,9 +55,6 @@ async def get_db() -> "AsyncSession":
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            # yield 后面的代码在请求处理完成后执行
-            # 但 async with 已经自动管理了生命周期，这里不需要额外操作
         except Exception:
-            # 发生异常时回滚未提交的更改
             await session.rollback()
             raise

@@ -9,10 +9,14 @@ from app.models.user import User
 from app.models.learning_goal import LearningGoal
 from app.models.task import Task
 from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 from app.models.review_card import ReviewCard
 from app.models.quiz import Quiz
 from app.models.concept import Concept
 from app.models.concept_relation import ConceptRelation
+from app.models.study_session import StudySession
+from app.models.achievement import Achievement
+from app.models.user_achievement import UserAchievement
 
 __all__ = [
     "Base",
@@ -21,8 +25,12 @@ __all__ = [
     "LearningGoal",
     "Task",
     "Document",
+    "DocumentChunk",
     "ReviewCard",
     "Quiz",
     "Concept",
     "ConceptRelation",
+    "StudySession",
+    "Achievement",
+    "UserAchievement",
 ]
