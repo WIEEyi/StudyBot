@@ -10,9 +10,9 @@
  * 4. 支持对话历史（当前会话内）
  */
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { get, post, ApiError } from "@/lib/api";
+import { get, post, ApiError, del } from "@/lib/api";
 import EmptyState from "@/components/EmptyState";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
@@ -21,6 +21,9 @@ import type {
   QAResponse,
   Document,
   DocumentListResponse,
+  ConversationResponse,
+  ConversationListResponse,
+  ConversationDetailResponse,
 } from "@/lib/types";
 
 /** 对话消息 */
@@ -48,6 +51,12 @@ export default function QAPage() {
   // -- 对话历史 --
   const [messages, setMessages] = useState<QAMessage[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // -- 对话管理 --
+  const [conversations, setConversations] = useState<ConversationResponse[]>([]);
+  const [convId, setConvId] = useState<number | undefined>(undefined);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [loadingConv, setLoadingConv] = useState(false);
 
   // -- 高级选项展开 --
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -79,6 +88,66 @@ export default function QAPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ========== 对话管理 ==========
+
+  /** 加载对话列表 */
+  const loadConversations = useCallback(async () => {
+    try {
+      const data = await get<ConversationListResponse>("/qa/conversations");
+      setConversations(data.items);
+    } catch {
+      // 静默失败
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated()) loadConversations();
+  }, [loadConversations]);
+
+  /** 切换对话 */
+  async function switchConversation(id: number) {
+    setLoadingConv(true);
+    try {
+      const data = await get<ConversationDetailResponse>(`/qa/conversations/${id}`);
+      const msgs: QAMessage[] = [];
+      for (const m of data.messages) {
+        msgs.push({ role: "user", question: m.question });
+        msgs.push({
+          role: "assistant",
+          answer: m.answer,
+          citations: m.citations,
+        });
+      }
+      setMessages(msgs);
+      setConvId(id);
+      setShowSidebar(false);
+    } catch {
+      // 加载失败
+    } finally {
+      setLoadingConv(false);
+    }
+  }
+
+  /** 新建对话 */
+  function newConversation() {
+    setMessages([]);
+    setConvId(undefined);
+    setShowSidebar(false);
+  }
+
+  /** 删除对话 */
+  async function handleDeleteConv(id: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm("删除此对话？")) return;
+    try {
+      await del(`/qa/conversations/${id}`);
+      if (convId === id) newConversation();
+      loadConversations();
+    } catch {
+      // 静默失败
+    }
+  }
+
   // ========== 提问 ==========
 
   async function handleAsk() {
@@ -94,6 +163,7 @@ export default function QAPage() {
     try {
       const payload: QARequest = { question: q };
       if (selectedDocId) payload.document_id = selectedDocId;
+      if (convId) payload.conversation_id = convId;
       if (topK !== 5) payload.top_k = topK;
       if (threshold !== 0.3) payload.threshold = threshold;
 
@@ -232,8 +302,68 @@ export default function QAPage() {
   return (
     <ErrorBoundary>
     <div className="max-w-3xl mx-auto flex flex-col" style={{ minHeight: "calc(100vh - 56px)" }}>
-      {/* 标题 */}
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">🤖 AI 问答</h1>
+      {/* 标题 + 对话管理 */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">🤖 AI 问答</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={newConversation}
+            className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+          >
+            + 新对话
+          </button>
+          <button
+            onClick={() => { loadConversations(); setShowSidebar(!showSidebar); }}
+            className="px-3 py-1.5 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            📋 历史 ({conversations.length})
+          </button>
+        </div>
+      </div>
+
+      {/* 对话列表侧边栏 */}
+      {showSidebar && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setShowSidebar(false)} />
+          <div className="fixed right-0 top-0 bottom-0 w-72 bg-white shadow-xl z-50 overflow-y-auto">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-sm text-gray-700">对话历史</h3>
+              <button onClick={() => setShowSidebar(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="p-2">
+              {conversations.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-8">暂无对话记录</p>
+              )}
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  onClick={() => switchConversation(conv.id)}
+                  className={`p-3 rounded-lg cursor-pointer mb-1 transition-colors ${
+                    convId === conv.id
+                      ? "bg-blue-50 border border-blue-200"
+                      : "hover:bg-gray-50 border border-transparent"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-800 truncate">{conv.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {conv.message_count} 条消息 · {conv.updated_at.split("T")[0]}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteConv(conv.id, e)}
+                      className="text-gray-300 hover:text-red-500 shrink-0 text-sm"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 消息列表 */}
       <div className="flex-1 space-y-4 mb-6">

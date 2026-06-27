@@ -58,6 +58,7 @@ class User(Base, TimestampMixin):
     concepts: Mapped[List["Concept"]] = relationship("Concept", back_populates="user")
     study_sessions: Mapped[List["StudySession"]] = relationship("StudySession", back_populates="user")
     user_achievements: Mapped[List["UserAchievement"]] = relationship("UserAchievement", back_populates="user")
+    conversations: Mapped[List["Conversation"]] = relationship("Conversation", back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"

@@ -224,3 +224,36 @@ export async function generateLearningPath(
 ): Promise<LearningPathResponse> {
   return post<LearningPathResponse>("/learning-path/generate", data);
 }
+
+// -- 对话历史 API --
+
+import type {
+  ConversationListResponse,
+  ConversationDetailResponse,
+  ConversationResponse,
+  ConversationCreate,
+} from "./types";
+
+/** 获取对话列表 */
+export async function getConversations(): Promise<ConversationListResponse> {
+  return get<ConversationListResponse>("/qa/conversations");
+}
+
+/** 创建新对话 */
+export async function createConversation(
+  data: ConversationCreate
+): Promise<ConversationResponse> {
+  return post<ConversationResponse>("/qa/conversations", data);
+}
+
+/** 获取对话详情（含消息） */
+export async function getConversation(
+  id: number
+): Promise<ConversationDetailResponse> {
+  return get<ConversationDetailResponse>(`/qa/conversations/${id}`);
+}
+
+/** 删除对话 */
+export async function deleteConversation(id: number): Promise<void> {
+  return del<void>(`/qa/conversations/${id}`);
+}

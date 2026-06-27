@@ -17,6 +17,7 @@ from app.models.concept_relation import ConceptRelation
 from app.models.study_session import StudySession
 from app.models.achievement import Achievement
 from app.models.user_achievement import UserAchievement
+from app.models.conversation import Conversation, ChatMessage
 
 __all__ = [
     "Base",
@@ -33,4 +34,6 @@ __all__ = [
     "StudySession",
     "Achievement",
     "UserAchievement",
+    "Conversation",
+    "ChatMessage",
 ]

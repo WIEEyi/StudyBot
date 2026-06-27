@@ -234,6 +234,7 @@ export interface ReviewResponse {
 export interface QARequest {
   question: string;
   document_id?: number;
+  conversation_id?: number;
   top_k?: number;
   threshold?: number;
 }
@@ -251,6 +252,41 @@ export interface QAResponse {
   question: string;
   answer: string;
   citations: CitationItem[];
+}
+
+// -- 对话历史类型 --
+
+export interface ConversationResponse {
+  id: number;
+  title: string;
+  document_id: number | null;
+  message_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConversationDetailResponse extends ConversationResponse {
+  messages: MessageResponse[];
+}
+
+export interface MessageResponse {
+  id: number;
+  question: string;
+  answer: string;
+  citations: CitationItem[];
+  created_at: string;
+}
+
+export interface ConversationCreate {
+  title: string;
+  document_id?: number;
+}
+
+export interface ConversationListResponse {
+  items: ConversationResponse[];
+  total: number;
+  offset: number;
+  limit: number;
 }
 
 // -- Quiz 类型（测验）--
