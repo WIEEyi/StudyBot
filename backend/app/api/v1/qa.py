@@ -35,13 +35,16 @@ class QARequest(BaseModel):
     question: str = Field(..., min_length=1, description="用户问题")
     document_id: Optional[int] = Field(None, description="限定文档 ID（可选）")
     top_k: int = Field(5, ge=1, le=20, description="返回最多引用数")
+    threshold: float = Field(0.3, ge=0.0, le=1.0, description="语义搜索相似度阈值")
 
 
 class CitationItem(BaseModel):
     """引用片段"""
+    chunk_id: int
     document_id: int
     document_title: str
     content: str
+    chunk_index: int = 0
     relevance: float = 0.0
 
 
@@ -96,7 +99,7 @@ async def ask_question(
             db=db,
             document_id=request.document_id,
             top_k=request.top_k,
-            threshold=request.threshold or 0.3,
+            threshold=request.threshold,
         )
     except Exception as e:
         logger.warning("语义搜索失败，回退到关键词匹配: %s", e, exc_info=True)

@@ -1,7 +1,7 @@
 """add milestone to tasks
 
 Revision ID: 4e3d32cdf2c8
-Revises: 4c33aef808eb
+Revises: eb0ace215fb2
 Create Date: 2026-06-02 10:21:52.448673
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '4e3d32cdf2c8'
-down_revision: Union[str, None] = '4c33aef808eb'
+down_revision: Union[str, None] = 'eb0ace215fb2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

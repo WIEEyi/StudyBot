@@ -200,6 +200,15 @@ async def upload_document(
         doc.id, doc.title, doc.file_type, len(file_bytes), current_user.id,
     )
 
+    # 异步触发向量化（Celery 后台任务，不阻塞 API 响应）
+    try:
+        from app.celery_app.tasks import generate_document_embeddings
+        generate_document_embeddings.delay(document_id=doc.id, content=content)
+        logger.info("已触发 Celery embedding 任务: document_id=%s", doc.id)
+    except Exception as e:
+        logger.warning("触发 Celery embedding 任务失败（RabbitMQ 可能未就绪）: %s", e)
+    # 即使 Celery 不可用也不阻塞响应
+
     return DocumentResponse.model_validate(doc)
 
 
