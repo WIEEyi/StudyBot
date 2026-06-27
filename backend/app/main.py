@@ -135,6 +135,8 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.qa import router as qa_router
 from app.api.v1.ws import websocket_plan
 from app.api.v1.scheduler import router as scheduler_router
+from app.api.v1.achievements import router as achievements_router
+from app.api.v1.learning_path import router as learning_path_router
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
@@ -147,6 +149,8 @@ app.include_router(review_cards_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(qa_router, prefix="/api/v1")
 app.include_router(scheduler_router, prefix="/api/v1")
+app.include_router(achievements_router, prefix="/api/v1")
+app.include_router(learning_path_router, prefix="/api/v1")
 
 # WebSocket 路由
 app.websocket("/api/v1/ws/plan")(websocket_plan)

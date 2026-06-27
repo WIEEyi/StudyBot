@@ -396,3 +396,70 @@ export interface GraphResponse {
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
+
+// -- Achievement 成就类型 --
+
+export interface Achievement {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  rarity: string;
+  threshold: number;
+}
+
+export interface AchievementListResponse {
+  items: Achievement[];
+  earned_codes: string[];
+  total: number;
+  earned_count: number;
+}
+
+export interface AchievementProgress {
+  achievement: Achievement;
+  current_progress: number;
+  threshold: number;
+  percent: number;
+  is_earned: boolean;
+}
+
+export interface UserAchievement {
+  id: number;
+  achievement: Achievement;
+  progress_value: number;
+  earned_at: string;
+}
+
+export interface AchievementCheckResponse {
+  new_achievements: Achievement[];
+  count: number;
+}
+
+// -- Learning Path 学习路径类型 --
+
+export interface LearningPathStep {
+  step_number: number;
+  title: string;
+  description: string;
+  action_type: "review" | "quiz" | "read" | "practice";
+  priority: "high" | "medium" | "low";
+  resource_id: number | null;
+  resource_type: string | null;
+  estimated_minutes: number;
+}
+
+export interface LearningPathResponse {
+  title: string;
+  summary: string;
+  steps: LearningPathStep[];
+  total_estimated_minutes: number;
+  focus_areas: string[];
+}
+
+export interface LearningPathGenerateRequest {
+  focus?: string;
+  document_id?: number;
+  max_steps?: number;
+}

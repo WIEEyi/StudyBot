@@ -41,6 +41,7 @@ export default function Navbar() {
                 { label: "测验", path: "/quiz" },
                 { label: "知识图谱", path: "/concepts" },
                 { label: "复习", path: "/review" },
+                { label: "成就", path: "/achievements" },
                 { label: "AI 问答", path: "/qa" },
               ].map(({ label, path }) => (
                 <button

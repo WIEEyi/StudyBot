@@ -163,6 +163,7 @@ async def create_task(
         goal_id=request.goal_id,
         title=request.title,
         description=request.description,
+        milestone=request.milestone,
         priority=request.priority,
         due_date=request.due_date,
         estimated_minutes=request.estimated_minutes,

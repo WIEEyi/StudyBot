@@ -129,10 +129,10 @@ pyProject/
 
 ## 当前状态
 
-- **阶段**: Phase 3 完成 ✅
-- **步骤**: Step 22 + 全栈改进完成 ✅
+- **阶段**: Phase 3 完成 + 成就/学习路径系统 ✅
+- **步骤**: Step 23 成就系统 + AI 学习路径 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-24 (DeepSeek 适配 + P2/P3 完善 + E2E 测试 + 全栈异常处理审计)
+- **最后更新**: 2026-06-25 (成就系统 + AI 学习路径 + 仪表盘集成)
 
 ---
 
@@ -171,6 +171,7 @@ pyProject/
 | 2026-06-24 | P3 | 生产部署(docker-compose.prod + Nginx + CI) + 前端 UX 组件(EmptyState/ErrorBoundary/Skeleton) ✅ |
 | 2026-06-24 | E2E | Playwright 测试框架搭建 + 15 个 E2E 测试全部通过 ✅ |
 | 2026-06-24 | 审计 | 全栈异常处理审计: 12 项修复(全局异常处理器/限流/流式上传/错误消息统一) ✅ |
+| 2026-06-25 | Step 23 | 成就系统 (20 个成就定义 + 自动颁发 + 进度追踪) + AI 学习路径 (LLM 个性化路径生成) + 仪表盘集成 ✅ |
 
 ### 🔄 进行中
 
@@ -180,9 +181,9 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 23 | 前端完善: 响应式适配 + WebSocket 进度展示 + 空状态组件接入 |
-| Step 24 | RAG 完善: 文档上传后自动触发 Embedding (Celery) + 语义搜索验证 |
-| Step 25 | LLM 集成: QA 模块接入 DeepSeek 生成答案 + 对话历史持久化 |
+| Step 24 | 前端完善: 响应式适配 + WebSocket 进度展示 + 空状态组件接入 |
+| Step 25 | RAG 完善: 文档上传后自动触发 Embedding (Celery) + 语义搜索验证 |
+| Step 26 | LLM 集成: QA 模块接入 DeepSeek 生成答案 + 对话历史持久化 |
 
 ### 💡 待办改进
 
@@ -575,17 +576,54 @@ WS     /api/v1/ws/plan                — AI 学习计划生成
 
 ---
 
-### Step 23: 下一步规划
+### Step 23: 成就系统 + AI 学习路径 ✅ (已完成)
 
-**待定方向** (按优先级排列):
+**目标**: 添加游戏化成就系统和 AI 驱动的个性化学习路径。
 
-| 方向 | 描述 |
-|------|------|
-| A. 前端体验优化 | 响应式设计、加载状态、错误提示、空状态页面 |
-| B. RAG 升级 | 用 pgvector + OpenAI Embedding 替换关键词匹配 |
-| C. AI 出题 LLM 集成 | Quiz generate 端点替换 mock 数据为真实 LLM 调用 |
-| D. SchedulerAgent | 动态计划调整（进度检测 + 自动重排） |
-| E. 生产部署 | Docker Compose production + Nginx + HTTPS |
+**新增文件 (12 个)**:
+
+后端:
+- `backend/app/models/achievement.py` — Achievement ORM 模型（code/name/description/icon/category/rarity/threshold）
+- `backend/app/models/user_achievement.py` — UserAchievement 关联表（user_id/achievement_id/progress_value）
+- `backend/app/schemas/achievement.py` — AchievementResponse/ListResponse/ProgressResponse Pydantic 模型
+- `backend/app/schemas/learning_path.py` — LearningPathStep/Response/GenerateRequest
+- `backend/app/services/achievement_service.py` — 成就检查和自动颁发逻辑（20 个成就定义 + 进度计算）
+- `backend/app/services/learning_path.py` — AI 学习路径生成（LLM 分析用户数据 → 结构化步骤）
+- `backend/app/api/v1/achievements.py` — GET 列表/进度/已获得 + POST 检查新成就
+- `backend/app/api/v1/learning_path.py` — POST /learning-path/generate
+- `backend/alembic/versions/a1b2c3d4e5f6_add_achievements_and_user_achievements.py` — 数据库迁移
+
+前端:
+- `frontend/src/components/AchievementCard.tsx` — 成就卡片组件（进度条 + 稀有度标签）
+- `frontend/src/components/LearningPath.tsx` — 学习路径组件（步骤列表 + 优先级 + 预估时间）
+- `frontend/src/app/achievements/page.tsx` — 成就系统页面（分类筛选 + 进度总览 + 检查新成就）
+
+**修改文件 (7 个)**:
+- `backend/app/models/__init__.py` — 导出 Achievement + UserAchievement
+- `backend/app/models/user.py` — 添加 user_achievements 关系
+- `backend/app/main.py` — 注册 achievements_router + learning_path_router
+- `frontend/src/lib/types.ts` — 添加 Achievement/LearningPath 类型
+- `frontend/src/lib/api.ts` — 添加成就和学习路径 API 函数
+- `frontend/src/components/Navbar.tsx` — 添加"成就"导航链接
+- `frontend/src/app/dashboard/page.tsx` — 集成学习路径和成就摘要
+
+**成就定义 (20 个)**:
+- 🔥 连续学习: 7天/30天/100天
+- ✅ 任务完成: 10/50/100 个
+- 📝 测验: 首次/10次
+- 🃏 复习卡片: 50/200/500 张
+- 📄 文档上传: 1/5/20 份
+- 🧠 知识图谱: 10/50 个概念
+- ⏱️ 学习时长: 10h/50h/100h
+
+**新增 API 端点 (5 个)**:
+```
+GET    /api/v1/achievements            — 所有成就（标注已获得）
+GET    /api/v1/achievements/progress   — 成就进度详情
+GET    /api/v1/achievements/earned     — 已获得的成就
+POST   /api/v1/achievements/check      — 检查并颁发新成就
+POST   /api/v1/learning-path/generate  — AI 生成学习路径
+```
 
 ---
 

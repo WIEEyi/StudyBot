@@ -190,3 +190,37 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 export async function getCurrentUser(): Promise<UserInfo> {
   return get<UserInfo>("/users/me");
 }
+
+// -- 成就 API --
+
+import type {
+  AchievementListResponse,
+  AchievementProgress,
+  AchievementCheckResponse,
+  LearningPathResponse,
+  LearningPathGenerateRequest,
+} from "./types";
+
+/** 获取成就列表 */
+export async function getAchievements(): Promise<AchievementListResponse> {
+  return get<AchievementListResponse>("/achievements");
+}
+
+/** 获取成就进度 */
+export async function getAchievementProgress(): Promise<AchievementProgress[]> {
+  return get<AchievementProgress[]>("/achievements/progress");
+}
+
+/** 检查并颁发新成就 */
+export async function checkAchievements(): Promise<AchievementCheckResponse> {
+  return post<AchievementCheckResponse>("/achievements/check");
+}
+
+// -- 学习路径 API --
+
+/** 生成学习路径 */
+export async function generateLearningPath(
+  data: LearningPathGenerateRequest
+): Promise<LearningPathResponse> {
+  return post<LearningPathResponse>("/learning-path/generate", data);
+}

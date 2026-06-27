@@ -73,24 +73,52 @@ StudyBot is a **personal learning and task scheduling AI Agent application** tha
 
 ### 2.3 Planned Features Detail
 
-#### 2.3.1 AI Learning Plan Generation (Step 8 - Next)
+#### 2.3.1 AI Learning Plan Generation (Step 8 - In Progress)
 
-**Description**: After creating a learning goal, invoke PlannerAgent (LangGraph) to automatically decompose the goal into a structured learning plan.
+**Description**: After creating a learning goal, users connect via WebSocket to trigger PlannerAgent (LangGraph), which automatically decomposes the goal into a structured learning plan (milestones + tasks) and streams progress in real-time via WebSocket.
+
+**Technical Implementation**:
+- **Agent Framework**: LangGraph StateGraph (3-node workflow)
+- **LLM**: ChatOpenAI (model=gpt-4o), structured output for guaranteed format
+- **Real-time Communication**: FastAPI WebSocket with JWT token authentication
+
+**Agent Workflow**:
+```
+START → analyze_goal → generate_plan (LLM) → save_plan (batch insert) → END
+```
+Each node pushes progress events via WebSocket during execution.
 
 **Input**:
-- Goal ID (existing Goal)
-- User preferences (optional: daily study time, deadline)
+- `goal_id`: ID of an existing learning goal
+- JWT access_token (passed as query param during WebSocket connection)
 
 **Processing Flow**:
-1. Analyze goal scope and learning path
-2. Generate milestones
-3. Generate specific tasks for each milestone
-4. Assign priority and time estimates to tasks
-5. Stream progress via WebSocket in real-time
+1. **Analysis Phase** (`analyze_goal`): Load goal info from DB, prepare LLM context
+2. **Generation Phase** (`generate_plan`): LLM analyzes goal, breaks into 3-5 milestones, generates 3-8 tasks per milestone, assigns priority and time estimates
+3. **Save Phase** (`save_plan`): Batch INSERT tasks into DB linked to the goal
+
+**WebSocket Event Stream**:
+| Event | Trigger | Data Format |
+|-------|---------|-------------|
+| `thinking` | Analysis starts | `{"event": "thinking", "message": "Analyzing..."}` |
+| `milestone` | Each milestone generated | `{"event": "milestone", "data": {"title": "Phase 1", "order": 1}}` |
+| `task` | Each task generated | `{"event": "task", "data": {...task fields}}` |
+| `complete` | All done | `{"event": "complete", "data": {"total_tasks": N, "total_minutes": M}}` |
+| `error` | Error occurred | `{"event": "error", "message": "Error description"}` |
 
 **Output**:
-- Series of Tasks linked to the Goal
-- Each Task includes: title, description, priority, estimated time, due date, milestone
+- Series of Tasks written to DB, linked to the Goal
+- Each Task includes: title, description, priority, estimated_minutes, milestone, due_date
+
+**Edge Cases & Error Handling**:
+- Goal not found → `error` event
+- Goal not owned by current user → `error` event
+- LLM API call failure → `error` event, no partial results saved
+- No valid OpenAI API key → `error` event
+- WebSocket connection timeout (30s) → auto close connection
+
+**Database Change**:
+- Task model adds `milestone` field (VARCHAR(100), nullable) for grouping tasks by milestone
 
 #### 2.3.2 Knowledge Base RAG Q&A (Step 9+)
 

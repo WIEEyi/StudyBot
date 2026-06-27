@@ -82,6 +82,10 @@ export const test = base.extend<Fixtures>({
         localStorage.getItem("studybot_access_token")
       );
       console.log("Token injected:", storedToken?.slice(0, 20) + "...");
+
+      // 导航到 dashboard 确认认证生效（Next.js hydration 读取 token）
+      await page.goto("/dashboard");
+      await page.waitForLoadState("networkidle");
     }
 
     await use(page);

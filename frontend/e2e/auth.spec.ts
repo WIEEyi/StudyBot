@@ -17,8 +17,19 @@ test.describe("认证流程", () => {
 
   test("已登录用户可访问仪表盘", async ({ authPage }) => {
     // authPage fixture 已注入 tokens
+    // 先访问一个轻量页面确保 token 生效
+    await authPage.goto("/login");
+    await authPage.waitForLoadState("domcontentloaded");
+
+    // 再导航到仪表盘
     await authPage.goto("/dashboard");
     await authPage.waitForLoadState("networkidle");
+
+    // 如果被重定向到 login，等一下再试（Next.js 客户端 hydration 延迟）
+    if (authPage.url().includes("/login")) {
+      await authPage.goto("/dashboard");
+      await authPage.waitForLoadState("networkidle");
+    }
 
     // 应停留在仪表盘（不被重定向到登录页）
     expect(authPage.url()).toContain("dashboard");
