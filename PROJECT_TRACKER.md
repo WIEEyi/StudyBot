@@ -129,10 +129,10 @@ pyProject/
 
 ## 当前状态
 
-- **阶段**: Phase 3 完成 + 成就/学习路径系统 ✅
-- **步骤**: Step 23 成就系统 + AI 学习路径 ✅
+- **阶段**: Phase 4 ✅
+- **步骤**: Step 25 完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-25 (成就系统 + AI 学习路径 + 仪表盘集成)
+- **最后更新**: 2026-06-27 (前端响应式完善 + RAG Celery 自动向量化 + DB 迁移修复)
 
 ---
 
@@ -172,6 +172,9 @@ pyProject/
 | 2026-06-24 | E2E | Playwright 测试框架搭建 + 15 个 E2E 测试全部通过 ✅ |
 | 2026-06-24 | 审计 | 全栈异常处理审计: 12 项修复(全局异常处理器/限流/流式上传/错误消息统一) ✅ |
 | 2026-06-25 | Step 23 | 成就系统 (20 个成就定义 + 自动颁发 + 进度追踪) + AI 学习路径 (LLM 个性化路径生成) + 仪表盘集成 ✅ |
+| 2026-06-27 | Step 24 | 前端完善: 响应式适配 (10页+Navbar汉堡菜单) + WebSocket PlanProgress 可视化 + EmptyState/Skeleton 组件接入 + ErrorBoundary 页面隔离 ✅ |
+| 2026-06-27 | 修复 | DB 迁移链修复 (broken revision 4c33aef808eb) + study_sessions 表 schema 修复 + 迁移对齐到 heads ✅ |
+| 2026-06-27 | Step 25 | RAG 完善: QA Schema 修复 (CitationItem/QARequest missing fields) + Celery generate_document_embeddings 真实实现 + 文档上传自动触发向量化 ✅ |
 
 ### 🔄 进行中
 
@@ -181,8 +184,6 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 24 | 前端完善: 响应式适配 + WebSocket 进度展示 + 空状态组件接入 |
-| Step 25 | RAG 完善: 文档上传后自动触发 Embedding (Celery) + 语义搜索验证 |
 | Step 26 | LLM 集成: QA 模块接入 DeepSeek 生成答案 + 对话历史持久化 |
 
 ### 💡 待办改进
