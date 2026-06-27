@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-06-27～28
+
+### 会话总结
+
+本次会话完成了 Steps 24-26（前端响应式完善 + RAG Celery 自动向量化 + LLM 集成和对话历史）以及全量代码审计。
+
+**主要工作**:
+- Step 24: 17 文件变更，新增 useWebSocket Hook + PlanProgress 组件，Navbar 汉堡菜单，10 页面响应式适配，9 页面 EmptyState/Skeleton 接入
+- Step 25: 修复 QA Schema bug + Celery embedding 真实实现 + DB 迁移链修复
+- Step 26: QA 接入 DeepSeek LLM + Conversation/ChatMessage ORM + 对话历史 CRUD API + 前端对话管理侧边栏
+- 审计修复: 3 代理并行审计发现 10 项问题（HNSW 索引丢失、WebSocket 空 URL、对话 ID 断连等），全部修复
+
+**问答记录**:
+1. 用户要求拉取远程仓库 → 配置 Git 代理后 fetch + merge
+2. 用户要求开始 Step 24 → 探索代码后制定 7 阶段计划 → 实现全部
+3. 用户要求启动 Docker → 等待构建（langchain 依赖下载耗时较长）
+4. 用户要求继续 → 执行 Step 25-26
+5. 用户要求审计代码 → 3 代理并行审计 → 10 项发现 → 全部修复
+6. 用户要求执行终止流程 → 更新所有追踪文档 + 推送
+
+---
+
 ## 2026-05-31
 
 ### Q1: `__init__.py` 文件的作用是什么？

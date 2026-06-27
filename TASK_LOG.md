@@ -32,6 +32,10 @@
 | Step 21 | [step_21_complete_backend_api.md](task_logs/step_21_complete_backend_api.md) | 2026-06-24 | ✅ |
 | Step 22 | [step_22_frontend_verification.md](task_logs/step_22_frontend_verification.md) | 2026-06-24 | ✅ |
 | 改进批次 | [step_22_improvements_batch.md](task_logs/step_22_improvements_batch.md) | 2026-06-24 | ✅ |
+| Step 24 | [step_24_frontend_improvements.md](task_logs/step_24_frontend_improvements.md) | 2026-06-27 | ✅ |
+| Step 25 | [step_25_rag_celery_embedding.md](task_logs/step_25_rag_celery_embedding.md) | 2026-06-27 | ✅ |
+| Step 26 | [step_26_llm_chat_history.md](task_logs/step_26_llm_chat_history.md) | 2026-06-27～28 | ✅ |
+| 审计 | [step_audit_fixes.md](task_logs/step_audit_fixes.md) | 2026-06-28 | ✅ |
 
 ---
 
@@ -54,7 +58,50 @@ task_logs/
 
 ## 当前会话
 
-**2026-06-24 全栈改进 + 异常处理审计**
+**2026-06-27～28 Steps 24-26 + 全量审计修复**
+
+**Step 24 — 前端完善**:
+- ✅ useWebSocket Hook + PlanProgress 可视化进度组件
+- ✅ Navbar 汉堡菜单 + 移动端下拉 + 44px 触控
+- ✅ 10 页面响应式适配（sm:/lg: 断点 + flex-wrap 工具栏）
+- ✅ 9 页面 EmptyState/Skeleton 接入 + ErrorBoundary 页面隔离
+- ✅ 组件触控目标修复 (GoalCard/TaskCard/DocumentCard/Modal)
+- ✅ next build 12/12 通过
+
+**Step 25 — RAG 完善**:
+- ✅ QA Schema 修复 (CitationItem.relevance→similarity + QARequest.threshold)
+- ✅ Celery generate_document_embeddings 真实实现 (分块→嵌入→存储)
+- ✅ 文档上传后自动 delay() 触发 Celery embedding
+- ✅ DB 迁移链修复 (broken revision + study_sessions schema 重建)
+- ✅ 162/162 测试通过
+
+**Step 26 — LLM 集成**:
+- ✅ QA 接入 DeepSeek ChatOpenAI 生成 RAG 综合回答
+- ✅ Conversation + ChatMessage ORM 模型 + 迁移
+- ✅ 对话历史 CRUD API (列表/创建/详情/删除)
+- ✅ 前端对话管理侧边栏 (历史列表/切换/新建/删除)
+- ✅ 162/162 测试 + 12/12 前端构建通过
+
+**审计修复**:
+- ✅ 3 代理并行审计 (正确性/行为移除/复用) → 10 项发现
+- ✅ HNSW 索引恢复 + WebSocket 空 URL 修复 + 对话 ID 断连修复
+- ✅ 迁移漂移清理 + N+1 查询优化 + 冗余 state 消除 + API 文档同步
+- ✅ 162/162 测试 + 12/12 构建
+
+**Git 提交**: 7 个提交
+**分支**: `feature/step-20-quiz-concepts`
+**项目状态**: 全部计划步骤 (Step 1-26) 完成 🏁
+
+---
+
+## 会话结束标记
+
+> **下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"。
+> **当前分支**: `feature/step-20-quiz-concepts`（已推送）
+> **Docker**: `docker compose up -d` 启动所有服务
+> **测试**: `docker compose exec backend pytest -v` (162/162)
+> **前端**: `cd frontend && npm run dev` (http://localhost:3000)
+> **最后提交**: `ecada93` — [Audit] Fix 10 audit findings
 
 ---
 
