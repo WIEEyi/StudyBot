@@ -3,15 +3,27 @@
 /**
  * 目标详情页
  *
- * 展示目标详细信息 + 任务列表，支持创建任务和切换任务状态。
+ * 展示目标详细信息 + 任务列表，支持：
+ * 1. 手动创建/删除任务
+ * 2. 切换任务状态
+ * 3. AI 生成学习计划（PlannerAgent WebSocket）
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { get, post, put, del, patch, ApiError } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
+import { getAccessToken } from "@/lib/auth";
 import type { Goal, Task, TaskCreate, TaskListResponse } from "@/lib/types";
 import TaskCard from "@/components/TaskCard";
+
+/** WebSocket 事件类型 */
+type PlannerEvent =
+  | { event: "thinking"; message: string }
+  | { event: "milestone"; data: { title: string; order: number } }
+  | { event: "task"; data: { title: string; milestone: string; priority: string; estimated_minutes: number } }
+  | { event: "complete"; data: { total_tasks: number; total_minutes: number } }
+  | { event: "error"; message: string };
 
 export default function GoalDetailPage() {
   const router = useRouter();
@@ -29,6 +41,14 @@ export default function GoalDetailPage() {
   const [taskPriority, setTaskPriority] = useState<string>("medium");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // PlannerAgent WebSocket 状态
+  const [planning, setPlanning] = useState(false);
+  const [planLogs, setPlanLogs] = useState<string[]>([]);
+  const [planMilestones, setPlanMilestones] = useState<{ title: string; order: number }[]>([]);
+  const [planTaskCount, setPlanTaskCount] = useState(0);
+  const [planResult, setPlanResult] = useState<{ total_tasks: number; total_minutes: number } | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -102,6 +122,69 @@ export default function GoalDetailPage() {
     }
   }
 
+  /** 触发 AI 生成学习计划 */
+  function startPlanGeneration() {
+    const token = getAccessToken();
+    if (!token) { setError("请先登录"); return; }
+
+    // 重置状态
+    setPlanning(true);
+    setPlanLogs([]);
+    setPlanMilestones([]);
+    setPlanTaskCount(0);
+    setPlanResult(null);
+
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1";
+    const wsUrl = apiBase.replace("http", "ws") + `/ws/plan?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setPlanLogs((prev) => [...prev, "✅ WebSocket 连接成功，正在发送请求..."]);
+      ws.send(JSON.stringify({ action: "generate_plan", goal_id: goalId }));
+    };
+
+    ws.onmessage = (event) => {
+      const data: PlannerEvent = JSON.parse(event.data);
+
+      switch (data.event) {
+        case "thinking":
+          setPlanLogs((prev) => [...prev, `🤔 ${data.message}`]);
+          break;
+        case "milestone":
+          setPlanMilestones((prev) => [...prev, data.data]);
+          setPlanLogs((prev) => [...prev, `📌 里程碑: ${data.data.title}`]);
+          break;
+        case "task":
+          setPlanTaskCount((c) => c + 1);
+          setPlanLogs((prev) => [...prev, `  ✏️ ${data.data.title} (${data.data.priority}, ${data.data.estimated_minutes}min)`]);
+          break;
+        case "complete":
+          setPlanResult(data.data);
+          setPlanLogs((prev) => [...prev, `🎉 完成! 共 ${data.data.total_tasks} 个任务, 预计 ${data.data.total_minutes} 分钟`]);
+          setPlanning(false);
+          ws.close();
+          fetchData(); // 刷新任务列表
+          break;
+        case "error":
+          setPlanLogs((prev) => [...prev, `❌ 错误: ${data.message}`]);
+          setPlanning(false);
+          ws.close();
+          break;
+      }
+    };
+
+    ws.onerror = () => {
+      setPlanLogs((prev) => [...prev, "❌ WebSocket 连接失败，请检查后端服务"]);
+      setPlanning(false);
+    };
+
+    ws.onclose = () => {
+      setPlanning(false);
+      wsRef.current = null;
+    };
+  }
+
   const statusLabels: Record<string, string> = { active: "进行中", completed: "已完成", paused: "已暂停" };
   const statusColors: Record<string, string> = { active: "bg-green-100 text-green-700", completed: "bg-blue-100 text-blue-700", paused: "bg-gray-100 text-gray-600" };
 
@@ -141,6 +224,56 @@ export default function GoalDetailPage() {
             切换状态
           </button>
         </div>
+      </div>
+
+      {/* AI 生成学习计划 */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-purple-800">🤖 AI 学习计划生成</h3>
+            <p className="text-xs text-purple-600 mt-0.5">
+              基于 DeepSeek V4 Pro 自动将目标分解为里程碑和每日任务
+            </p>
+          </div>
+          <button
+            onClick={startPlanGeneration}
+            disabled={planning}
+            className="px-4 py-2 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {planning ? "⏳ 生成中..." : "✨ 生成计划"}
+          </button>
+        </div>
+
+        {/* 进度日志 */}
+        {planLogs.length > 0 && (
+          <div className="bg-white/80 rounded-lg border border-purple-100 p-3 mt-3 max-h-64 overflow-y-auto">
+            {planLogs.map((log, i) => (
+              <p key={i} className={`text-xs font-mono leading-relaxed ${log.startsWith("  ") ? "text-gray-500 ml-4" : log.startsWith("❌") ? "text-red-600" : log.startsWith("🎉") ? "text-green-600 font-semibold" : "text-gray-700"}`}>
+                {log}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* 里程碑预览 */}
+        {planMilestones.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {planMilestones.map((m, i) => (
+              <span key={i} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                {m.order}. {m.title}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* 完成结果 */}
+        {planResult && (
+          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-700 font-medium">
+              ✅ 已生成 {planResult.total_tasks} 个任务，预计总耗时 {Math.round(planResult.total_minutes / 60 * 10) / 10} 小时
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 任务区域 */}

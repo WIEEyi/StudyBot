@@ -14,9 +14,14 @@ FastAPI 应用入口
 
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.rate_limiter import limiter
 from app.config import get_settings
 from app.core.database import engine
 from app.core.logging_config import setup_logging
@@ -84,9 +89,37 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,  # 允许的前端地址列表
     allow_credentials=True,              # 允许携带 Cookie/Authorization 头
-    allow_methods=["*"],                 # 允许所有 HTTP 方法
-    allow_headers=["*"],                 # 允许所有请求头
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
 )
+
+
+# --- 限流器注册 ---
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# --- 全局异常处理器 ---
+# 捕获未处理的异常，防止泄露敏感信息（堆栈、DB URL 等）
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    """数据库异常 — 返回通用错误信息，不暴露 SQL 细节"""
+    logger.error("数据库异常 [%s %s]: %s", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "数据库操作失败，请稍后重试"},
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """兜底异常 — 捕获所有未处理的异常，防止信息泄露"""
+    logger.error("未处理异常 [%s %s]: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "服务器内部错误，请稍后重试"},
+    )
 
 
 # --- 注册路由 ---
@@ -96,6 +129,12 @@ from app.api.v1.goals import router as goals_router
 from app.api.v1.tasks import router as tasks_router
 from app.api.v1.quizzes import router as quizzes_router
 from app.api.v1.concepts import router as concepts_router
+from app.api.v1.documents import router as documents_router
+from app.api.v1.review_cards import router as review_cards_router
+from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.qa import router as qa_router
+from app.api.v1.ws import websocket_plan
+from app.api.v1.scheduler import router as scheduler_router
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
@@ -103,6 +142,14 @@ app.include_router(goals_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(quizzes_router, prefix="/api/v1")
 app.include_router(concepts_router, prefix="/api/v1")
+app.include_router(documents_router, prefix="/api/v1")
+app.include_router(review_cards_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(qa_router, prefix="/api/v1")
+app.include_router(scheduler_router, prefix="/api/v1")
+
+# WebSocket 路由
+app.websocket("/api/v1/ws/plan")(websocket_plan)
 
 # --- 健康检查接口 ---
 # 最简单的接口: 返回应用是否在运行

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 /**
  * 根布局
  *
- * 所有页面共享导航栏和全局样式。
+ * 所有页面共享导航栏、错误边界和全局样式。
  */
 export default function RootLayout({
   children,
@@ -20,8 +21,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased bg-gray-50">
-        <Navbar />
-        <main>{children}</main>
+        <ErrorBoundary>
+          <Navbar />
+          <main>{children}</main>
+        </ErrorBoundary>
       </body>
     </html>
   );

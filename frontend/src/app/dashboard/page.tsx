@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { get } from "@/lib/api";
+import { get, ApiError } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import type {
   DashboardOverview,
@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [heatmap, setHeatmap] = useState<HeatmapResponse | null>(null);
+  const [heatmapError, setHeatmapError] = useState(false);
   const [streak, setStreak] = useState<StreakResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,8 @@ export default function DashboardPage() {
         setOverview(overviewData);
         setStreak(streakData);
       } catch (err) {
-        setError("加载数据失败，请确认后端服务已启动");
+        if (err instanceof ApiError) setError(err.detail);
+        else setError("加载数据失败，请稍后重试");
         console.error("Dashboard load error:", err);
       }
     }
@@ -67,6 +69,7 @@ export default function DashboardPage() {
         setHeatmap(heatmapData);
       } catch (err) {
         console.error("Heatmap load error:", err);
+        setHeatmapError(true);
       } finally {
         setLoading(false);
       }
@@ -152,7 +155,11 @@ export default function DashboardPage() {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               📊 学习热力图（近 90 天）
             </h3>
-            <HeatmapChart data={heatmap?.items || []} />
+            {heatmapError ? (
+              <div className="text-center py-8 text-gray-400 text-sm">热力图数据加载失败</div>
+            ) : (
+              <HeatmapChart data={heatmap?.items || []} />
+            )}
           </div>
 
           {/* 连续天数 — 占 1/3 */}

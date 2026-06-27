@@ -147,6 +147,52 @@ async def list_concepts(
     return ConceptListResponse(items=items, total=total, offset=offset, limit=limit)
 
 
+# ===================== 知识图谱 =====================
+# 注意: /graph 必须在 /{concept_id} 之前注册，否则 "graph" 会被当成 concept_id 解析
+
+
+@router.get("/graph", response_model=GraphResponse)
+async def get_graph(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取当前用户的完整知识图谱数据"""
+    concept_result = await db.execute(
+        select(Concept)
+        .where(Concept.user_id == current_user.id)
+        .order_by(Concept.name.asc())
+    )
+    concepts = concept_result.scalars().all()
+
+    concept_ids = {c.id for c in concepts}
+
+    relations_result = await db.execute(
+        select(ConceptRelation).where(
+            ConceptRelation.source_id.in_(concept_ids),
+            ConceptRelation.target_id.in_(concept_ids),
+        )
+    )
+    relations = relations_result.scalars().all()
+
+    nodes = [
+        GraphNode(id=c.id, name=c.name, category=c.category)
+        for c in concepts
+    ]
+    edges = [
+        GraphEdge(
+            source=r.source_id, target=r.target_id,
+            relation_type=r.relation_type,
+            label=RELATION_LABELS.get(r.relation_type, r.relation_type),
+        )
+        for r in relations
+    ]
+
+    logger.info("获取知识图谱: user_id=%s, nodes=%s, edges=%s",
+                current_user.id, len(nodes), len(edges))
+
+    return GraphResponse(nodes=nodes, edges=edges)
+
+
 @router.get("/{concept_id}", response_model=ConceptDetailResponse)
 async def get_concept(
     concept_id: int,
@@ -344,67 +390,3 @@ async def delete_relation(
 
     logger.info("删除关系: id=%s, %s → %s", relation_id, relation.source_id, relation.target_id)
 
-
-# ===================== 知识图谱 =====================
-
-
-@router.get("/graph", response_model=GraphResponse)
-async def get_graph(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """获取当前用户的完整知识图谱数据
-
-    返回所有概念节点和所有关系边，用于 vis-network 可视化。
-    不包括孤立关系（source 或 target 概念不存在的情况）。
-    """
-    # 查询所有概念节点
-    concept_result = await db.execute(
-        select(Concept)
-        .where(Concept.user_id == current_user.id)
-        .order_by(Concept.name.asc())
-    )
-    concepts = concept_result.scalars().all()
-
-    # 收集概念 ID 集合
-    concept_ids = {c.id for c in concepts}
-
-    # 查询所有相关的关系边（source 和 target 都在用户的概念中）
-    # 由于 ConceptRelation 没有 user_id，需要关联查询
-    relations_result = await db.execute(
-        select(ConceptRelation).where(
-            ConceptRelation.source_id.in_(concept_ids),
-            ConceptRelation.target_id.in_(concept_ids),
-        )
-    )
-    relations = relations_result.scalars().all()
-
-    # 构建节点列表
-    nodes = [
-        GraphNode(
-            id=c.id,
-            name=c.name,
-            category=c.category,
-        )
-        for c in concepts
-    ]
-
-    # 构建边列表
-    edges = [
-        GraphEdge(
-            source=r.source_id,
-            target=r.target_id,
-            relation_type=r.relation_type,
-            label=RELATION_LABELS.get(r.relation_type, r.relation_type),
-        )
-        for r in relations
-    ]
-
-    logger.info(
-        "获取知识图谱: user_id=%s, nodes=%s, edges=%s",
-        current_user.id,
-        len(nodes),
-        len(edges),
-    )
-
-    return GraphResponse(nodes=nodes, edges=edges)

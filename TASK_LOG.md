@@ -29,6 +29,9 @@
 | Step 18 | [step_18_frontend_crud.md](task_logs/step_18_frontend_crud.md) | 2026-06-06 | ✅ |
 | Step 19 | [step_19_review_qa_pages.md](task_logs/step_19_review_qa_pages.md) | 2026-06-19 | ✅ |
 | Step 20 | [step_20_quiz_concepts.md](task_logs/step_20_quiz_concepts.md) | 2026-06-21 | ✅ |
+| Step 21 | [step_21_complete_backend_api.md](task_logs/step_21_complete_backend_api.md) | 2026-06-24 | ✅ |
+| Step 22 | [step_22_frontend_verification.md](task_logs/step_22_frontend_verification.md) | 2026-06-24 | ✅ |
+| 改进批次 | [step_22_improvements_batch.md](task_logs/step_22_improvements_batch.md) | 2026-06-24 | ✅ |
 
 ---
 
@@ -51,7 +54,43 @@ task_logs/
 
 ## 当前会话
 
-**Step 20** — 后端 Quiz + Concept API + 前端出题页面 + 知识图谱可视化
+**2026-06-24 全栈改进 + 异常处理审计**
+
+---
+
+## 2026-06-24 会话
+
+**环境搭建**:
+- ✅ 克隆仓库 → 配置代理 → 安装 Docker Desktop + Python 3.11 + 全部 pip 依赖
+- ✅ docker-compose up 拉起全部服务 (postgres + redis + rabbitmq + backend)
+- ✅ 切换到 `feature/step-20-quiz-concepts` 分支（已做到 Step 20）
+- ✅ 修复 Alembic 空迁移问题 → 重新生成完整初始迁移
+
+**Step 21 开发**:
+- ✅ Documents API: 上传(PDF/MD/TXT/HTML) + 列表 + 详情 + 删除 + 文本提取
+- ✅ ReviewCards API: CRUD + SM-2 评分算法 + due_filter
+- ✅ Dashboard API: overview + heatmap + streak + session (含 StudySession 模型)
+- ✅ QA API: RAG 关键词匹配问答
+- ✅ WebSocket PlannerAgent: 从 main 分支恢复 Agent + WS 代码
+- ✅ 修复 concepts /graph 路由顺序 422 bug
+- ✅ 数据库迁移: study_sessions 表 + tasks 新字段
+- ✅ 全量测试 132/132 通过
+
+**Step 22 前端验证**:
+- ✅ npm install (402 packages) + next build (12/12 pages)
+- ✅ 14 个 API 端点 curl 验证全部 200/201
+- ✅ 9 个页面路由验证全部 200
+- ✅ 无集成问题
+
+**新增文件**: 16 个 (schemas×3 + api×5 + agents×1 + models×1 + tests×4 + ws×1 + planner×1)
+**修改文件**: 7 个 (main + config + models/__init__ + user + task model/schema + concepts)
+**新增端点**: 15 个 (Documents 4 + ReviewCards 5 + Dashboard 4 + QA 1 + WebSocket 1)
+
+**结束位置**: Step 22 全部完成 ✅
+**Git 分支**: `feature/step-20-quiz-concepts`（待提交推送）
+**Docker 服务**: 全部 running
+**前端**: http://localhost:3000 运行中
+**下一步**: Step 23 — 见 PROJECT_TRACKER.md 待办方向
 
 ---
 
@@ -155,3 +194,25 @@ task_logs/
 
 ---
 🤖 会话结束标记 | 2026-06-19 | feature/step-19-review-qa-pages
+
+---
+
+## 2026-06-24 会话结束
+
+**完成的工作**:
+- ✅ DeepSeek V4 Pro 全局适配 + Quiz AI 出题接 LLM + 前端 PlannerAgent UI
+- ✅ P2: Services 层重构(5个) + SchedulerAgent + Celery 异步 + RAG pgvector
+- ✅ P3: 生产部署(docker-compose.prod + Nginx + CI) + 前端 UX 组件(3个)
+- ✅ E2E: Playwright 框架搭建 + 15 个测试
+- ✅ 全栈异常处理审计: 12 项修复 (🔴3 + 🟡5 + 🟢4)
+- ✅ 全部文档更新: PROJECT_TRACKER / TASK_LOG / QA_LOG / task_logs
+
+**测试结果**: 后端 150/150 + E2E 15/15 + 前端 build 12/12
+**Git 分支**: `feature/step-20-quiz-concepts`（已推送，5 个新 commits）
+**Docker 服务**: 全部 running
+**前端**: http://localhost:3000 运行中
+**下次恢复**: 提供 PROJECT_TRACKER.md 给 Claude，说"继续 StudyBot 项目"
+**下一步**: Step 23 — 前端完善: 响应式适配 + WebSocket 进度展示
+
+---
+🤖 会话结束标记 | 2026-06-24 | feature/step-20-quiz-concepts

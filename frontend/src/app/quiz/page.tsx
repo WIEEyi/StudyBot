@@ -73,8 +73,9 @@ export default function QuizPage() {
       params.set("limit", "100");
       const data = await get<QuizListResponse>(`/quizzes?${params.toString()}`);
       setQuizzes(data.items);
-    } catch {
-      setError("加载测验题失败");
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.detail);
+      else setError("加载测验题失败，请稍后重试");
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export default function QuizPage() {
     try {
       const data = await get<DocumentListResponse>("/documents?limit=100");
       setDocuments(data.items);
-    } catch {
+    } catch (err) {
       // 文档加载失败不影响测验功能
     }
   }, []);

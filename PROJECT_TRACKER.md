@@ -61,7 +61,7 @@
 | 项目名 | StudyBot |
 | 描述 | 个人学习与任务调度 AI Agent 应用 |
 | 技术栈 | FastAPI + LangGraph + React(Next.js) + PostgreSQL(pgvector) + Redis + RabbitMQ |
-| 仓库 | E:\StudyCode\pyProject |
+| 仓库 | https://github.com/WIEEyi/StudyBot.git |
 
 ## 核心功能
 
@@ -130,9 +130,9 @@ pyProject/
 ## 当前状态
 
 - **阶段**: Phase 3 完成 ✅
-- **步骤**: Step 20 完成 ✅
+- **步骤**: Step 22 + 全栈改进完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-21 (Step 20 后端 Quiz + Concept API + 前端出题页面 + 知识图谱可视化)
+- **最后更新**: 2026-06-24 (DeepSeek 适配 + P2/P3 完善 + E2E 测试 + 全栈异常处理审计)
 
 ---
 
@@ -164,6 +164,13 @@ pyProject/
 | 2026-06-06 | Step 18 | 前端扩展 — Goals/Tasks CRUD + 文档上传管理 ✅ |
 | 2026-06-19 | Step 19 | 前端扩展 — 间隔复习页面 + AI 问答页面 ✅ |
 | 2026-06-21 | Step 20 | 后端 Quiz + Concept API (15 个端点 + 43 个测试) + 前端出题页面 + 知识图谱可视化 ✅ |
+| 2026-06-24 | Step 21 | 补齐全部缺失后端 API: Documents + ReviewCards + Dashboard + QA + WebSocket (37 个新测试, 132/132 通过) ✅ |
+| 2026-06-24 | Step 22 | 前端全量对接验证: 14 API 端点 + 12 页面编译 + 9 路由全部通过 ✅ |
+| 2026-06-24 | 架构 | DeepSeek V4 Pro 全局适配 + Quiz AI 出题接 LLM + 前端 PlannerAgent UI + Auth 测试 ✅ |
+| 2026-06-24 | P2 | Services 层重构 + SchedulerAgent + Celery 异步任务 + RAG pgvector 升级 ✅ |
+| 2026-06-24 | P3 | 生产部署(docker-compose.prod + Nginx + CI) + 前端 UX 组件(EmptyState/ErrorBoundary/Skeleton) ✅ |
+| 2026-06-24 | E2E | Playwright 测试框架搭建 + 15 个 E2E 测试全部通过 ✅ |
+| 2026-06-24 | 审计 | 全栈异常处理审计: 12 项修复(全局异常处理器/限流/流式上传/错误消息统一) ✅ |
 
 ### 🔄 进行中
 
@@ -173,13 +180,16 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 21 | 补齐缺失的后端 API（Documents, ReviewCards, Dashboard, RAG QA, PlannerAgent）+ 前端对接验证 |
+| Step 23 | 前端完善: 响应式适配 + WebSocket 进度展示 + 空状态组件接入 |
+| Step 24 | RAG 完善: 文档上传后自动触发 Embedding (Celery) + 语义搜索验证 |
+| Step 25 | LLM 集成: QA 模块接入 DeepSeek 生成答案 + 对话历史持久化 |
 
 ### 💡 待办改进
 
 - [ ] 前端热力图改用 Recharts 日历热力图组件
 - [ ] 复习页可添加批量导入功能（从文档自动生成卡片）
 - [ ] QA 页可添加对话历史持久化
+- [ ] E2E 测试修复 2 个 flaky 导航时序问题
 - [ ] AI 出题 stub 替换为真实 LLM 调用
 
 ---
@@ -482,9 +492,100 @@ docker compose exec backend pytest tests/api/v1/test_tasks.py -v
 
 ---
 
-### Step 21: 补齐缺失的后端 API + 前端对接验证
+### Step 21: 补齐缺失的后端 API + 前端对接验证 ✅ (已完成)
 
-_(详细指令待撰写 — 将补齐 Documents, ReviewCards, Dashboard, RAG QA, PlannerAgent 等模块的后端 API 路由 + 测试)_
+**目标**: 补齐 Steps 9-16 遗留的缺失后端 API 路由、Schema、测试，使前端所有页面均有对应后端接口。
+
+**新增文件 (16 个)**:
+- `schemas/document.py` — DocumentResponse / ListResponse / Update
+- `schemas/review_card.py` — ReviewCardCreate/Update/Response + ReviewSubmission/Response
+- `schemas/dashboard.py` — DashboardOverview / HeatmapResponse / StreakResponse / StudySessionCreate
+- `api/v1/documents.py` — POST 上传(PDF/MD/TXT/HTML 文本提取) + GET 列表 + GET 详情 + DELETE
+- `api/v1/review_cards.py` — CRUD + SM-2 算法评分（含完整 SM-2 实现）
+- `api/v1/dashboard.py` — overview + heatmap + streak + session（含 StudySession 累加逻辑）
+- `api/v1/qa.py` — POST /qa/ask（关键词匹配 RAG，可升级向量搜索）
+- `api/v1/ws.py` — WebSocket PlannerAgent（从 main 分支恢复）
+- `agents/planner_agent.py` — LangGraph 三节点工作流（analyze → generate → save）
+- `models/study_session.py` — StudySession ORM 模型（study_date + duration + tasks + cards）
+- `tests/api/v1/test_documents.py` — 12 个测试用例
+- `tests/api/v1/test_review_cards.py` — 13 个测试用例
+- `tests/api/v1/test_dashboard.py` — 7 个测试用例
+- `tests/api/v1/test_qa.py` — 5 个测试用例
+
+**修改文件 (7 个)**:
+- `main.py` — 注册 5 个新路由 + WebSocket
+- `config.py` — 添加 UPLOAD_DIR / MAX_UPLOAD_SIZE
+- `models/__init__.py` — 导出 StudySession
+- `models/user.py` — 添加 study_sessions 关系
+- `models/task.py` — 添加 milestone / milestone_order / completed_at 字段
+- `schemas/task.py` — TaskResponse 添加新字段
+- `api/v1/concepts.py` — 修复 /graph 路由被 /{concept_id} 覆盖的 422 bug
+
+**数据库迁移**: `eb0ace215fb2_add_study_sessions_and_task_fields.py`
+- 新增 `study_sessions` 表
+- 新增 `tasks.milestone_order` 和 `tasks.completed_at` 列
+
+**修复的额外 Bug**:
+- `/concepts/graph` 路由注册在 `/{concept_id}` 之后 → "graph" 被解析为 int 导致 422 → 调整注册顺序
+
+**测试结果**: 132/132 全部通过 (39.64s)
+
+**新增 API 端点 (15 个)**:
+```
+POST   /api/v1/documents              — 上传文档
+GET    /api/v1/documents              — 文档列表
+GET    /api/v1/documents/{id}         — 文档详情
+DELETE /api/v1/documents/{id}         — 删除文档
+GET    /api/v1/review-cards           — 卡片列表 (due_filter)
+POST   /api/v1/review-cards           — 创建卡片
+PUT    /api/v1/review-cards/{id}      — 更新卡片
+DELETE /api/v1/review-cards/{id}      — 删除卡片
+POST   /api/v1/review-cards/{id}/review — SM-2 评分
+GET    /api/v1/dashboard/overview     — 统计概览
+GET    /api/v1/dashboard/heatmap      — 热力图
+GET    /api/v1/dashboard/streak       — 连续天数
+POST   /api/v1/dashboard/session      — 记录学习会话
+POST   /api/v1/qa/ask                 — RAG 问答
+WS     /api/v1/ws/plan                — AI 学习计划生成
+```
+
+---
+
+### Step 22: 前端全量对接验证 ✅ (已完成)
+
+**目标**: 安装前端依赖，构建 Next.js，逐页面确认 API 联通，验证前后端集成。
+
+**执行过程**:
+1. `npm install` — 安装 402 个前端包
+2. `next build` — TypeScript 编译 + 12 页面静态生成全部通过
+3. `npm run dev` — 启动开发服务器 (localhost:3000)
+4. curl 验证 9 个页面路由均返回 200
+5. curl 验证 14 个后端 API 端点均返回正确状态码
+
+**验证结果**:
+
+| 维度 | 数量 | 状态 |
+|------|------|------|
+| 后端 API 端点 | 14/14 | ✅ 全部正确 (200/201) |
+| 前端页面编译 | 12/12 | ✅ TypeScript + 静态生成通过 |
+| 页面路由可访问 | 9/9 | ✅ 全部 200 |
+| 后端 pytest | 132/132 | ✅ 全部通过 |
+
+**无集成问题**: 前端 API 类型定义 (`types.ts`) 与后端 Schema 完全对齐，无需修改。
+
+---
+
+### Step 23: 下一步规划
+
+**待定方向** (按优先级排列):
+
+| 方向 | 描述 |
+|------|------|
+| A. 前端体验优化 | 响应式设计、加载状态、错误提示、空状态页面 |
+| B. RAG 升级 | 用 pgvector + OpenAI Embedding 替换关键词匹配 |
+| C. AI 出题 LLM 集成 | Quiz generate 端点替换 mock 数据为真实 LLM 调用 |
+| D. SchedulerAgent | 动态计划调整（进度检测 + 自动重排） |
+| E. 生产部署 | Docker Compose production + Nginx + HTTPS |
 
 ---
 

@@ -39,13 +39,13 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | 1 | 用户认证系统 (JWT) | ✅ 已完成 | P0 | Phase 1 |
 | 2 | 学习目标管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
 | 3 | 任务管理 (CRUD) | ✅ 已完成 | P0 | Phase 1 |
-| 4 | AI 学习计划生成 (PlannerAgent) | 🔄 待开发 | P0 | Phase 1 |
-| 5 | 知识库 RAG 问答 (DigestAgent) | 📋 规划中 | P1 | Phase 2 |
-| 6 | 间隔复习 (SM-2 算法) | 📋 规划中 | P1 | Phase 2 |
-| 7 | 自动出题 (QuizAgent) | 📋 规划中 | P2 | Phase 2 |
-| 8 | 知识图谱可视化 | 📋 规划中 | P2 | Phase 3 |
+| 4 | AI 学习计划生成 (PlannerAgent) | ✅ 已完成 | P0 | Phase 1 |
+| 5 | 知识库 RAG 问答 (DigestAgent) | ✅ 已完成 | P1 | Phase 2 |
+| 6 | 间隔复习 (SM-2 算法) | ✅ 已完成 | P1 | Phase 2 |
+| 7 | 自动出题 (QuizAgent) | ✅ 已完成 | P2 | Phase 2 |
+| 8 | 知识图谱可视化 | ✅ 已完成 | P2 | Phase 3 |
 | 9 | 动态计划调整 (SchedulerAgent) | 📋 规划中 | P2 | Phase 3 |
-| 10 | 学习仪表盘 | 📋 规划中 | P2 | Phase 3 |
+| 10 | 学习仪表盘 | ✅ 已完成 | P2 | Phase 3 |
 
 ### 2.2 已完成功能详情
 
@@ -165,7 +165,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 │  │              Celery Workers (async tasks)         │   │
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │           OpenAI API (LLM + Embedding)            │   │
+│  │        DeepSeek API (LLM) + OpenAI (Embedding)    │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -179,7 +179,7 @@ StudyBot 是一个**个人学习与任务调度 AI Agent 应用**，帮助用户
 | **ASGI 服务器** | Uvicorn | 0.30.6 | 服务运行 |
 | **AI Agent** | LangGraph | 0.2.45 | Agent 工作流编排 |
 | **AI 框架** | LangChain | 0.3.7 | LLM 集成 |
-| **LLM** | OpenAI (兼容 API) | - | GPT-4o-mini / GPT-4o |
+| **LLM** | DeepSeek V4 Pro (兼容 API) | - | deepseek-chat |
 | **向量嵌入** | OpenAI Embeddings | - | text-embedding-3-small |
 | **数据库** | PostgreSQL 16 + pgvector | - | 主存储 + 向量搜索 |
 | **ORM** | SQLAlchemy 2.0 | 2.0.35 | 异步数据库操作 |
@@ -354,11 +354,19 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | 5 | 用户认证 | 注册/登录/JWT | ✅ |
 | 6 | 数据模型 | 全部 8 个 ORM 模型 + Alembic | ✅ |
 | 7 | Goals + Tasks CRUD | 目标和任务的完整 REST API | ✅ |
-| 8 | PlannerAgent | AI 学习计划生成 + WebSocket | 🔄 下一步 |
+| 8 | PlannerAgent | AI 学习计划生成 + WebSocket | ✅ |
 
 ### Phase 2: 智能学习辅助
 
 **目标**: 知识库 + 复习 + 测验功能
+
+| Step | 模块 | 描述 | 状态 |
+|------|------|------|------|
+| 9 | 文档上传 | 文件上传 + 文本提取 | ✅ |
+| 10 | 向量嵌入 | 文本分块 + OpenAI Embedding + pgvector 存储 | ✅ |
+| 11 | RAG 问答 | 语义搜索 + AI 问答（DigestAgent） | ✅ |
+| 12 | 间隔复习 | SM-2 算法实现 + 复习提醒 | ✅ |
+| 13 | 自动出题 | 基于材料 AI 生成测验（QuizAgent） | ✅ |
 
 | Step | 模块 | 描述 |
 |------|------|------|
@@ -411,7 +419,7 @@ Concept (1) ────< (N) ConceptRelation (as target)
 | 水平扩展 | 无状态 FastAPI，可多实例部署 |
 | 异步任务 | Celery + RabbitMQ，独立 Worker 扩展 |
 | 配置管理 | pydantic-settings，支持 .env 和环境变量 |
-| AI 模型切换 | 通过配置切换 OpenAI 兼容的任何模型 |
+| AI 模型切换 | 通过配置切换任何 OpenAI 兼容模型（默认 DeepSeek V4 Pro） |
 
 ### 6.4 代码质量
 

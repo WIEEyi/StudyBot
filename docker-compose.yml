@@ -107,6 +107,34 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ============================================================
+  # Celery Worker (异步任务处理)
+  # 用途: 文档文本提取、Embedding 生成等耗时任务
+  # 无端口暴露，通过 RabbitMQ 接收任务
+  # ============================================================
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studybot-celery-worker
+    command: celery -A app.celery_app.celery worker --loglevel=info --concurrency=2
+    volumes:
+      - ./backend:/app
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql+psycopg2://studybot:studybot123@postgres:5432/studybot
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
 # ============================================================
 # 命名数据卷（Docker 管理，不手动指定路径）
 # ============================================================

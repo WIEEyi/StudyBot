@@ -246,19 +246,32 @@ class TestDeleteQuiz:
 
 
 class TestGenerateQuiz:
-    """POST /quizzes/generate — AI 生成（stub）"""
+    """POST /quizzes/generate — AI 生成"""
 
     @pytest.mark.asyncio
-    async def test_generate_stub(self, async_client):
-        """AI 生成返回 mock 数据（需要文档，跳过无文档场景）"""
-        # 由于没有文档创建 API，此测试验证 generate 端点在
-        # 缺少文档时返回适当的错误
+    async def test_generate_nonexistent_document(self, async_client):
+        """不存在的文档 → 404"""
         response = await async_client.post("/api/v1/quizzes/generate", json={
             "document_id": 99999,
             "count": 3,
         })
-        # 文档不存在 → 404
         assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_generate_empty_content_document(self, async_client):
+        """文档内容为空 → 400"""
+        # 上传一个空内容文档
+        files = {"file": ("empty.txt", b"", "text/plain")}
+        create_resp = await async_client.post("/api/v1/documents", files=files)
+        if create_resp.status_code == 201:
+            doc_id = create_resp.json()["id"]
+            response = await async_client.post("/api/v1/quizzes/generate", json={
+                "document_id": doc_id,
+                "count": 3,
+            })
+            assert response.status_code == 400
+            # 清理
+            await async_client.delete(f"/api/v1/documents/{doc_id}")
 
 
 class TestGradeQuiz:

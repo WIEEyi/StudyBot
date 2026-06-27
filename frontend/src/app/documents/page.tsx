@@ -31,7 +31,8 @@ export default function DocumentsPage() {
       const data = await get<DocumentListResponse>(`/documents${qs ? "?" + qs : ""}?limit=50`);
       setDocs(data.items);
     } catch (err) {
-      setError("加载文档失败");
+      if (err instanceof ApiError) setError(err.detail);
+      else setError("加载文档失败，请稍后重试");
     } finally {
       setLoading(false);
     }

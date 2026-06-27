@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from app.models.review_card import ReviewCard
     from app.models.quiz import Quiz
     from app.models.concept import Concept
+    from app.models.study_session import StudySession
 
 
 class User(Base, TimestampMixin):
@@ -54,6 +55,7 @@ class User(Base, TimestampMixin):
     review_cards: Mapped[List["ReviewCard"]] = relationship("ReviewCard", back_populates="user")
     quizzes: Mapped[List["Quiz"]] = relationship("Quiz", back_populates="user")
     concepts: Mapped[List["Concept"]] = relationship("Concept", back_populates="user")
+    study_sessions: Mapped[List["StudySession"]] = relationship("StudySession", back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"

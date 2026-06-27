@@ -97,8 +97,9 @@ export default function ConceptsPage() {
       params.set("limit", "100");
       const data = await get<ConceptListResponse>(`/concepts?${params.toString()}`);
       setConcepts(data.items);
-    } catch {
-      setError("加载概念失败");
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.detail);
+      else setError("加载概念失败，请稍后重试");
     } finally {
       setLoading(false);
     }
@@ -109,8 +110,9 @@ export default function ConceptsPage() {
     try {
       const data = await get<GraphResponse>("/concepts/graph");
       setGraphData(data);
-    } catch {
-      setError("加载图谱数据失败");
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.detail);
+      else setError("加载图谱数据失败，请稍后重试");
     } finally {
       setGraphLoading(false);
     }
@@ -121,8 +123,9 @@ export default function ConceptsPage() {
     try {
       const data = await get<ConceptDetail>(`/concepts/${conceptId}`);
       setSelectedConcept(data);
-    } catch {
-      setError("加载概念详情失败");
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.detail);
+      else setError("加载概念详情失败，请稍后重试");
     } finally {
       setDetailLoading(false);
     }

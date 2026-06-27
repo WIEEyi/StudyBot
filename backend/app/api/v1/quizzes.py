@@ -7,7 +7,7 @@
 - POST   /quizzes                — 创建测验题
 - PUT    /quizzes/{id}           — 更新测验题
 - DELETE /quizzes/{id}           — 删除测验题
-- POST   /quizzes/generate       — AI 自动出题（当前为 stub）
+- POST   /quizzes/generate       — AI 自动出题（DeepSeek V4 Pro）
 - POST   /quizzes/grade          — 批改答题
 """
 
@@ -16,11 +16,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status as http_sta
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.quiz import Quiz
 from app.models.document import Document
+from app.services.quiz_service import generate_quizzes_with_llm, LLMQuizItem
 from app.schemas.quiz import (
     QuizCreate,
     QuizUpdate,
@@ -34,6 +36,7 @@ from app.schemas.quiz import (
 )
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 router = APIRouter(prefix="/quizzes", tags=["测验"])
 
@@ -255,7 +258,7 @@ async def delete_quiz(
     logger.info("删除测验题: id=%s, question=%s...", quiz_id, quiz.question[:30])
 
 
-# ===================== AI 生成（Stub） =====================
+# ===================== AI 生成（DeepSeek V4 Pro） =====================
 
 @router.post("/generate", response_model=QuizGenerateResponse)
 async def generate_quizzes(
@@ -263,48 +266,69 @@ async def generate_quizzes(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """AI 自动出题 — 基于文档内容生成测验题
-
-    当前为 Stub 实现，返回示例题目。
-    AI Agent 系统就绪后将替换为真实的 LLM 生成逻辑。
-    """
-    # 校验文档归属
+    """AI 自动出题 — 基于文档内容使用 DeepSeek V4 Pro 生成测验题"""
     doc = await _verify_document_owner(request.document_id, current_user, db)
 
-    logger.warning(
-        "AI 出题 stub: 文档 id=%s, 请求 %s 题，返回 mock 数据",
-        request.document_id,
-        request.count,
-    )
-
-    # 生成 mock 题目
-    mock_quizzes = []
-    for i in range(min(request.count, 10)):
-        mock_quizzes.append(
-            QuizResponse(
-                id=-(i + 1),  # 负数 ID 表示临时题目
-                user_id=current_user.id,
-                document_id=request.document_id,
-                question=f"示例问题 {i+1}：文档「{doc.title}」的主要内容是什么？",
-                options=[
-                    f"选项A：答案一",
-                    f"选项B：答案二",
-                    f"选项C：答案三",
-                    f"选项D：答案四",
-                ],
-                correct_answer=0,
-                explanation=f"这是 AI 生成的示例解析 #{i+1}。AI 出题功能尚未实现，此处为占位数据。",
-                source="ai_generated",
-                created_at=doc.created_at,  # 使用文档创建时间
-                updated_at=doc.created_at,
-            )
+    content = (doc.content or "")[:3000]
+    if not content.strip():
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="文档内容为空，无法生成题目。请先上传有内容的文档。",
         )
 
-    return QuizGenerateResponse(
-        quizzes=mock_quizzes,
-        document_id=request.document_id,
-        count=len(mock_quizzes),
+    logger.info(
+        "AI 出题: 文档 id=%s (%s), 请求 %s 题, user_id=%s",
+        request.document_id, doc.title, request.count, current_user.id,
     )
+
+    try:
+        # 调用 Quiz Service
+        quiz_items = await generate_quizzes_with_llm(
+            doc_title=doc.title,
+            doc_content=content,
+            count=request.count,
+        )
+
+        # 保存题目到数据库
+        quiz_objects = []
+        for item in quiz_items:
+            quiz = Quiz(
+                user_id=current_user.id,
+                document_id=request.document_id,
+                question=item.question,
+                options=item.options,
+                correct_answer=str(item.correct_answer),
+                explanation=item.explanation,
+                source="ai_generated",
+            )
+            quiz_objects.append(quiz)
+
+        db.add_all(quiz_objects)
+        await db.commit()
+
+        # 刷新获取 ID 和时间戳
+        for q in quiz_objects:
+            await db.refresh(q)
+
+        logger.info(
+            "AI 出题完成: 文档 id=%s, 生成 %s 题",
+            request.document_id, len(quiz_objects),
+        )
+
+        return QuizGenerateResponse(
+            quizzes=[QuizResponse.model_validate(q) for q in quiz_objects],
+            document_id=request.document_id,
+            count=len(quiz_objects),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("AI 出题失败: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI 出题失败: {str(e)}",
+        )
 
 
 # ===================== 批改答题 =====================
@@ -327,12 +351,14 @@ async def grade_quizzes(
 
     results: list[QuizResultResponse] = []
     correct_count = 0
+    skipped_ids: list[int] = []
 
     for sub in submissions:
         try:
             quiz = await _get_user_quiz(sub.quiz_id, current_user, db)
         except HTTPException:
-            # 题目不存在或无权限 — 跳过该题
+            # 题目不存在或无权限 — 记录跳过
+            skipped_ids.append(sub.quiz_id)
             continue
 
         correct_index = int(quiz.correct_answer)
@@ -352,20 +378,30 @@ async def grade_quizzes(
             )
         )
 
+    graded_total = len(results)
     total = len(submissions)
-    score_percent = round((correct_count / total) * 100, 1) if total > 0 else 0.0
+    score_percent = round((correct_count / graded_total) * 100, 1) if graded_total > 0 else 0.0
+
+    if skipped_ids:
+        logger.warning(
+            "批改跳过 %s 题 (不存在或无权限): ids=%s, user_id=%s",
+            len(skipped_ids), skipped_ids, current_user.id,
+        )
 
     logger.info(
-        "批改完成: %s/%s 正确 (%.1f%%), user_id=%s",
+        "批改完成: %s/%s 正确 (%.1f%%), 跳过 %s 题, user_id=%s",
         correct_count,
-        total,
+        graded_total,
         score_percent,
+        len(skipped_ids),
         current_user.id,
     )
 
     return QuizScoreResponse(
         results=results,
         total=total,
+        graded=graded_total,
+        skipped=len(skipped_ids),
         correct_count=correct_count,
         score_percent=score_percent,
     )

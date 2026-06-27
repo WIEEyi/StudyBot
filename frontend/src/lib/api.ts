@@ -76,6 +76,10 @@ async function request<T>(
 
   // 非 2xx → 抛出 ApiError
   if (!response.ok) {
+    // 5xx 服务器错误统一友好提示
+    if (response.status >= 500) {
+      throw new ApiError(response.status, "服务器繁忙，请稍后重试");
+    }
     throw new ApiError(
       response.status,
       data.detail || `请求失败 (${response.status})`
@@ -130,6 +134,10 @@ export async function postFormData<T>(path: string, formData: FormData): Promise
 
   const data = await response.json();
   if (!response.ok) {
+    // 5xx 服务器错误统一友好提示
+    if (response.status >= 500) {
+      throw new ApiError(response.status, "服务器繁忙，请稍后重试");
+    }
     throw new ApiError(response.status, data.detail || `上传失败 (${response.status})`);
   }
   return data as T;
