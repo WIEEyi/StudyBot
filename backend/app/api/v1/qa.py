@@ -57,6 +57,7 @@ class QAResponse(BaseModel):
     """问答响应"""
     question: str
     answer: str
+    conversation_id: int | None = None
     citations: list[CitationItem]
 
 
@@ -192,9 +193,6 @@ async def ask_question(
     对话历史:
     - 提供 conversation_id 时自动保存消息
     """
-    from app.models.conversation import Conversation, ChatMessage
-    import json as _json
-
     # 尝试语义搜索
     search_mode = "semantic"
     try:
@@ -249,6 +247,7 @@ async def ask_question(
         return QAResponse(
             question=request.question,
             answer=answer,
+            conversation_id=conv_id,
             citations=citations,
         )
 
@@ -262,10 +261,11 @@ async def ask_question(
 
     if not documents:
         answer = "没有找到相关文档。请先上传学习材料。"
-        await _save_chat_message(db, current_user.id, request, answer, [], "no_docs")
+        conv_id = await _save_chat_message(db, current_user.id, request, answer, [], "no_docs")
         return QAResponse(
             question=request.question,
             answer=answer,
+            conversation_id=conv_id,
             citations=[],
         )
 
@@ -310,11 +310,12 @@ async def ask_question(
         answer = "在你的文档中没有找到与问题相关的内容。试试换一种方式提问。"
 
     # 保存聊天历史
-    await _save_chat_message(db, current_user.id, request, answer, citations, search_mode)
+    conv_id = await _save_chat_message(db, current_user.id, request, answer, citations, search_mode)
 
     return QAResponse(
         question=request.question,
         answer=answer,
+        conversation_id=conv_id,
         citations=citations,
     )
 

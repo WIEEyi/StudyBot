@@ -703,7 +703,7 @@ Multiple calls on the same day accumulate values.
   "question": "What is Python?",
   "answer": "Based on your 2 documents, here is relevant content:...",
   "citations": [
-    { "document_id": 1, "document_title": "Python Notes", "content": "...", "relevance": 0.75 }
+    { "chunk_id": 1, "chunk_index": 0, "document_id": 1, "document_title": "Python Notes", "content": "...", "similarity": 0.75 }
   ]
 }
 ```

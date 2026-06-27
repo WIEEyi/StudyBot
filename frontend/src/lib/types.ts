@@ -251,6 +251,7 @@ export interface CitationItem {
 export interface QAResponse {
   question: string;
   answer: string;
+  conversation_id?: number;
   citations: CitationItem[];
 }
 

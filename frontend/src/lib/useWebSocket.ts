@@ -102,6 +102,9 @@ export default function useWebSocket({
 
   /** 建立 WebSocket 连接 */
   const connect = useCallback(() => {
+    // 空 URL 跳过（避免 new WebSocket("") 抛出 SyntaxError）
+    if (!url) return;
+
     // 清理旧连接
     if (wsRef.current) {
       wsRef.current.close();

@@ -169,6 +169,12 @@ export default function QAPage() {
 
       const result = await post<QAResponse>("/qa/ask", payload);
 
+      // 后端返回 conversation_id 时更新本地状态，确保后续提问归入同一对话
+      if (result.conversation_id && !convId) {
+        setConvId(result.conversation_id);
+        loadConversations();
+      }
+
       const assistantMsg: QAMessage = {
         role: "assistant",
         answer: result.answer,

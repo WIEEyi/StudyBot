@@ -747,11 +747,14 @@ Access Token 有效期 30 分钟，过期后使用 `/api/v1/auth/refresh` 刷新
   "citations": [
     {
       "document_id": 1,
+      "chunk_id": 1,
+      "chunk_index": 0,
       "document_title": "Python学习笔记",
       "content": "Python 是一种高级编程语言...",
-      "relevance": 0.75
+      "similarity": 0.75
     }
-  ]
+  ],
+  "conversation_id": 1
 }
 ```
 

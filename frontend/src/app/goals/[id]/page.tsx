@@ -46,7 +46,9 @@ export default function GoalDetailPage() {
   const [planThinking, setPlanThinking] = useState("");
   const [planResult, setPlanResult] = useState<PlanResult | null>(null);
   const [planError, setPlanError] = useState("");
-  const [planning, setPlanning] = useState(false);
+
+  // 计划是否正在进行中（从 planPhase 派生）
+  const planning = planPhase !== "idle" && planPhase !== "complete" && planPhase !== "error";
 
   // WebSocket Hook — 仅当 planPhase 为 "connecting" 时触发连接
   const { send: wsSend, close: wsClose } = useWebSocket({
@@ -88,7 +90,6 @@ export default function GoalDetailPage() {
           const d = data.data as { total_tasks: number; total_minutes: number };
           setPlanResult(d);
           setPlanPhase("complete");
-          setPlanning(false);
           wsClose();
           fetchData(); // 刷新任务列表
           break;
@@ -96,7 +97,6 @@ export default function GoalDetailPage() {
         case "error":
           setPlanError((data.message as string) || "生成失败");
           setPlanPhase("error");
-          setPlanning(false);
           wsClose();
           break;
       }
@@ -104,7 +104,6 @@ export default function GoalDetailPage() {
     onError: () => {
       setPlanError("WebSocket 连接失败，请检查后端服务");
       setPlanPhase("error");
-      setPlanning(false);
     },
     maxRetries: 1,
   });
@@ -193,14 +192,12 @@ export default function GoalDetailPage() {
     setPlanThinking("");
     setPlanResult(null);
     setPlanError("");
-    setPlanning(true);
   }
 
   /** 取消生成 */
   function cancelPlanGeneration() {
     wsClose();
     setPlanPhase("idle");
-    setPlanning(false);
   }
 
   /** 重试生成 */

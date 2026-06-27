@@ -89,30 +89,29 @@ async def list_conversations(
     )
     total = (await db.execute(count_query)).scalar() or 0
 
-    # 列表
+    # 列表 + 消息计数（单次 JOIN 查询，避免 N+1）
     query = (
-        select(Conversation)
+        select(
+            Conversation,
+            func.count(ChatMessage.id).label("message_count"),
+        )
+        .outerjoin(ChatMessage, ChatMessage.conversation_id == Conversation.id)
         .where(Conversation.user_id == current_user.id)
+        .group_by(Conversation.id)
         .order_by(desc(Conversation.updated_at))
         .offset(offset)
         .limit(limit)
     )
     result = await db.execute(query)
-    conversations = result.scalars().all()
+    rows = result.all()
 
     items = []
-    for conv in conversations:
-        # 获取消息数量
-        msg_count_query = select(func.count()).select_from(ChatMessage).where(
-            ChatMessage.conversation_id == conv.id
-        )
-        msg_count = (await db.execute(msg_count_query)).scalar() or 0
-
+    for conv, msg_count in rows:
         items.append(ConversationResponse(
             id=conv.id,
             title=conv.title,
             document_id=conv.document_id,
-            message_count=msg_count,
+            message_count=msg_count or 0,
             created_at=conv.created_at.isoformat(),
             updated_at=conv.updated_at.isoformat(),
         ))
