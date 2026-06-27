@@ -14,6 +14,9 @@ import { useRouter } from "next/navigation";
 import { get, post, put, del, ApiError } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import Modal from "@/components/Modal";
+import EmptyState from "@/components/EmptyState";
+import { CardSkeleton } from "@/components/Skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import KnowledgeGraphCanvas from "@/components/KnowledgeGraphCanvas";
 import type {
   Concept,
@@ -262,8 +265,11 @@ export default function ConceptsPage() {
 
   if (loading && viewMode === "list") {
     return (
-      <div className="flex justify-center items-center py-20 text-gray-400">
-        <span className="animate-spin text-3xl mr-3">⏳</span> 加载中...
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">🕸️ 知识图谱</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <CardSkeleton /><CardSkeleton /><CardSkeleton /><CardSkeleton />
+        </div>
       </div>
     );
   }
@@ -271,11 +277,12 @@ export default function ConceptsPage() {
   // ==================== 渲染 ====================
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <ErrorBoundary>
+    <div className="max-w-6xl mx-auto">
       {/* 标题栏 + 视图切换 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">🕸️ 知识图谱</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">🕸️ 知识图谱</h1>
           <p className="text-sm text-gray-500 mt-1">
             {concepts.length} 个概念节点
           </p>
@@ -349,11 +356,13 @@ export default function ConceptsPage() {
 
           {/* 概念列表 */}
           {concepts.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <p className="text-4xl mb-3">🕸️</p>
-              <p>还没有概念节点</p>
-              <p className="text-sm mt-1">点击"新建概念"创建第一个概念节点</p>
-            </div>
+            <EmptyState
+              icon="🕸️"
+              title="还没有概念节点"
+              description='点击"新建概念"创建第一个概念节点'
+              actionLabel="新建概念"
+              onAction={openCreate}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {concepts.map((concept) => (
@@ -728,5 +737,6 @@ export default function ConceptsPage() {
         </div>
       </Modal>
     </div>
+    </ErrorBoundary>
   );
 }

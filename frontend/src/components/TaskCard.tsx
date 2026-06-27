@@ -73,14 +73,14 @@ export default function TaskCard({ task, onStatusChange, onDelete }: TaskCardPro
         {task.status !== "cancelled" && task.status !== "done" && nextStatus[task.status] && (
           <button
             onClick={() => onStatusChange(task, nextStatus[task.status])}
-            className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+            className="px-2 py-1.5 min-h-[36px] text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
           >
             {task.status === "todo" ? "开始" : "完成"}
           </button>
         )}
         <button
           onClick={() => onDelete(task)}
-          className="px-2 py-1 text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          className="px-2 py-1.5 min-h-[36px] text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
         >
           删除
         </button>

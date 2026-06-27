@@ -12,6 +12,9 @@ import { get, del, postFormData, ApiError } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import type { Document, DocumentListResponse, FileType } from "@/lib/types";
 import DocumentCard from "@/components/DocumentCard";
+import EmptyState from "@/components/EmptyState";
+import { CardSkeleton } from "@/components/Skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function DocumentsPage() {
   const router = useRouter();
@@ -92,14 +95,22 @@ export default function DocumentsPage() {
     { label: "HTML", value: "html" },
   ];
 
-  if (loading) return <div className="flex justify-center py-20 text-gray-400">加载中...</div>;
+  if (loading) return (
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">📁 文档管理</h1>
+      <div className="space-y-2">
+        <CardSkeleton /><CardSkeleton /><CardSkeleton />
+      </div>
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">📁 文档管理</h1>
+    <ErrorBoundary>
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">📁 文档管理</h1>
 
       {/* 上传区域 */}
-      <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-8 mb-6 text-center hover:border-blue-400 transition-colors">
+      <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-6 sm:p-8 mb-6 text-center hover:border-blue-400 transition-colors">
         <input
           ref={fileInputRef}
           type="file"
@@ -140,10 +151,13 @@ export default function DocumentsPage() {
 
       {/* 文档列表 */}
       {docs.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">📭</p>
-          <p>还没有上传文档</p>
-        </div>
+        <EmptyState
+          icon="📭"
+          title="还没有上传文档"
+          description="支持 PDF、Markdown、TXT、HTML 格式"
+          actionLabel="选择文件"
+          onAction={() => fileInputRef.current?.click()}
+        />
       ) : (
         <div className="space-y-2">
           {docs.map((doc) => (
@@ -152,5 +166,6 @@ export default function DocumentsPage() {
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

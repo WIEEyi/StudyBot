@@ -15,6 +15,9 @@ import { useRouter } from "next/navigation";
 import { get, post, put, del, ApiError } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import Modal from "@/components/Modal";
+import EmptyState from "@/components/EmptyState";
+import { CardSkeleton } from "@/components/Skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import type {
   Quiz,
   QuizCreate,
@@ -274,8 +277,11 @@ export default function QuizPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-20 text-gray-400">
-        <span className="animate-spin text-3xl mr-3">⏳</span> 加载中...
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">📝 测验管理</h1>
+        <div className="space-y-3">
+          <CardSkeleton /><CardSkeleton /><CardSkeleton />
+        </div>
       </div>
     );
   }
@@ -286,7 +292,7 @@ export default function QuizPage() {
     // 显示评分结果
     if (quizResults) {
       return (
-        <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="max-w-2xl mx-auto">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-2">📊 测验结果</h2>
             <div className="grid grid-cols-3 gap-4 my-6 text-center">
@@ -348,7 +354,7 @@ export default function QuizPage() {
 
     // 做题中
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto">
         {/* 进度条 */}
         <div className="flex items-center justify-between mb-4">
           <button onClick={exitQuizMode} className="text-sm text-gray-500 hover:text-gray-700">
@@ -457,16 +463,17 @@ export default function QuizPage() {
   // ==================== 列表模式渲染 ====================
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <ErrorBoundary>
+    <div className="max-w-4xl mx-auto">
       {/* 标题栏 */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">📝 测验管理</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">📝 测验管理</h1>
           <p className="text-sm text-gray-500 mt-1">
             {quizzes.length} 道题目 · {selectedQuizIds.size} 道已选
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {selectedQuizIds.size > 0 && (
             <button
               onClick={startQuizMode}
@@ -528,11 +535,13 @@ export default function QuizPage() {
 
       {/* 题目列表 */}
       {quizzes.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">📭</p>
-          <p>还没有测验题</p>
-          <p className="text-sm mt-1">点击"新建题目"手动创建，或上传文档后使用"AI 出题"</p>
-        </div>
+        <EmptyState
+          icon="📝"
+          title="还没有测验题"
+          description='点击"新建题目"手动创建，或上传文档后使用"AI 出题"'
+          actionLabel="新建题目"
+          onAction={openCreate}
+        />
       ) : (
         <div className="space-y-3">
           {quizzes.map((quiz) => (
@@ -745,5 +754,6 @@ export default function QuizPage() {
         </div>
       </Modal>
     </div>
+    </ErrorBoundary>
   );
 }

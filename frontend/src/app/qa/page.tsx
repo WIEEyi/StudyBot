@@ -13,6 +13,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { get, post, ApiError } from "@/lib/api";
+import EmptyState from "@/components/EmptyState";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import type {
   QARequest,
@@ -228,32 +230,21 @@ export default function QAPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col" style={{ minHeight: "calc(100vh - 56px)" }}>
+    <ErrorBoundary>
+    <div className="max-w-3xl mx-auto flex flex-col" style={{ minHeight: "calc(100vh - 56px)" }}>
       {/* 标题 */}
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">🤖 AI 问答</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">🤖 AI 问答</h1>
 
       {/* 消息列表 */}
       <div className="flex-1 space-y-4 mb-6">
         {messages.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-3">💬</p>
-            <p className="text-lg font-medium">基于你的学习文档提问</p>
-            <p className="text-sm mt-1">
-              上传文档后，AI 会在文档中搜索相关内容并生成答案
-            </p>
-            {documents.length === 0 && (
-              <p className="text-sm mt-3 text-orange-500">
-                ⚠️ 还没有文档，请先
-                <button
-                  onClick={() => router.push("/documents")}
-                  className="underline mx-1 hover:text-orange-600"
-                >
-                  上传文档
-                </button>
-                后再提问
-              </p>
-            )}
-          </div>
+          <EmptyState
+            icon="💬"
+            title="基于你的学习文档提问"
+            description={documents.length === 0 ? "还没有文档，请先上传文档后再提问" : "上传文档后，AI 会在文档中搜索相关内容并生成答案"}
+            actionLabel={documents.length === 0 ? "上传文档" : undefined}
+            onAction={documents.length === 0 ? () => router.push("/documents") : undefined}
+          />
         )}
 
         {messages.map((msg, idx) => (
@@ -423,5 +414,6 @@ export default function QAPage() {
         <p className="text-xs text-gray-400 mt-1">按 Enter 发送，Shift+Enter 换行</p>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

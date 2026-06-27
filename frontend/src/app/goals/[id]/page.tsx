@@ -9,21 +9,18 @@
  * 3. AI 生成学习计划（PlannerAgent WebSocket）
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { get, post, put, del, patch, ApiError } from "@/lib/api";
-import { isAuthenticated } from "@/lib/auth";
-import { getAccessToken } from "@/lib/auth";
+import { isAuthenticated, getAccessToken } from "@/lib/auth";
 import type { Goal, Task, TaskCreate, TaskListResponse } from "@/lib/types";
 import TaskCard from "@/components/TaskCard";
-
-/** WebSocket 事件类型 */
-type PlannerEvent =
-  | { event: "thinking"; message: string }
-  | { event: "milestone"; data: { title: string; order: number } }
-  | { event: "task"; data: { title: string; milestone: string; priority: string; estimated_minutes: number } }
-  | { event: "complete"; data: { total_tasks: number; total_minutes: number } }
-  | { event: "error"; message: string };
+import EmptyState from "@/components/EmptyState";
+import Skeleton from "@/components/Skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import PlanProgress from "@/components/PlanProgress";
+import type { PlanPhase, MilestoneInfo, PlanResult } from "@/components/PlanProgress";
+import useWebSocket from "@/lib/useWebSocket";
 
 export default function GoalDetailPage() {
   const router = useRouter();
@@ -42,13 +39,75 @@ export default function GoalDetailPage() {
   const [taskDueDate, setTaskDueDate] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // PlannerAgent WebSocket 状态
-  const [planning, setPlanning] = useState(false);
-  const [planLogs, setPlanLogs] = useState<string[]>([]);
-  const [planMilestones, setPlanMilestones] = useState<{ title: string; order: number }[]>([]);
+  // PlannerAgent 进度可视化状态
+  const [planPhase, setPlanPhase] = useState<PlanPhase>("idle");
+  const [planMilestones, setPlanMilestones] = useState<MilestoneInfo[]>([]);
   const [planTaskCount, setPlanTaskCount] = useState(0);
-  const [planResult, setPlanResult] = useState<{ total_tasks: number; total_minutes: number } | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const [planThinking, setPlanThinking] = useState("");
+  const [planResult, setPlanResult] = useState<PlanResult | null>(null);
+  const [planError, setPlanError] = useState("");
+  const [planning, setPlanning] = useState(false);
+
+  // WebSocket Hook — 仅当 planPhase 为 "connecting" 时触发连接
+  const { send: wsSend, close: wsClose } = useWebSocket({
+    url: planPhase === "connecting"
+      ? (() => {
+          const token = getAccessToken();
+          if (!token) return "";
+          const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1";
+          return apiBase.replace("http", "ws") + `/ws/plan?token=${token}`;
+        })()
+      : "",
+    onOpen: () => {
+      // 连接建立后发送生成请求
+      setPlanPhase("thinking");
+      setTimeout(() => {
+        if (wsSend) {
+          wsSend({ action: "generate_plan", goal_id: goalId });
+        }
+      }, 50);
+    },
+    onMessage: (raw) => {
+      const data = raw as Record<string, unknown>;
+      const event = data.event as string;
+
+      switch (event) {
+        case "thinking":
+          setPlanThinking((data.message as string) || "");
+          break;
+        case "milestone": {
+          setPlanPhase("generating");
+          const m = data.data as { title: string; order: number };
+          setPlanMilestones((prev) => [...prev, { title: m.title, order: m.order }]);
+          break;
+        }
+        case "task":
+          setPlanTaskCount((c) => c + 1);
+          break;
+        case "complete": {
+          const d = data.data as { total_tasks: number; total_minutes: number };
+          setPlanResult(d);
+          setPlanPhase("complete");
+          setPlanning(false);
+          wsClose();
+          fetchData(); // 刷新任务列表
+          break;
+        }
+        case "error":
+          setPlanError((data.message as string) || "生成失败");
+          setPlanPhase("error");
+          setPlanning(false);
+          wsClose();
+          break;
+      }
+    },
+    onError: () => {
+      setPlanError("WebSocket 连接失败，请检查后端服务");
+      setPlanPhase("error");
+      setPlanning(false);
+    },
+    maxRetries: 1,
+  });
 
   const fetchData = useCallback(async () => {
     try {
@@ -127,68 +186,40 @@ export default function GoalDetailPage() {
     const token = getAccessToken();
     if (!token) { setError("请先登录"); return; }
 
-    // 重置状态
-    setPlanning(true);
-    setPlanLogs([]);
+    // 重置所有状态
+    setPlanPhase("connecting");
     setPlanMilestones([]);
     setPlanTaskCount(0);
+    setPlanThinking("");
     setPlanResult(null);
+    setPlanError("");
+    setPlanning(true);
+  }
 
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1";
-    const wsUrl = apiBase.replace("http", "ws") + `/ws/plan?token=${token}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+  /** 取消生成 */
+  function cancelPlanGeneration() {
+    wsClose();
+    setPlanPhase("idle");
+    setPlanning(false);
+  }
 
-    ws.onopen = () => {
-      setPlanLogs((prev) => [...prev, "✅ WebSocket 连接成功，正在发送请求..."]);
-      ws.send(JSON.stringify({ action: "generate_plan", goal_id: goalId }));
-    };
-
-    ws.onmessage = (event) => {
-      const data: PlannerEvent = JSON.parse(event.data);
-
-      switch (data.event) {
-        case "thinking":
-          setPlanLogs((prev) => [...prev, `🤔 ${data.message}`]);
-          break;
-        case "milestone":
-          setPlanMilestones((prev) => [...prev, data.data]);
-          setPlanLogs((prev) => [...prev, `📌 里程碑: ${data.data.title}`]);
-          break;
-        case "task":
-          setPlanTaskCount((c) => c + 1);
-          setPlanLogs((prev) => [...prev, `  ✏️ ${data.data.title} (${data.data.priority}, ${data.data.estimated_minutes}min)`]);
-          break;
-        case "complete":
-          setPlanResult(data.data);
-          setPlanLogs((prev) => [...prev, `🎉 完成! 共 ${data.data.total_tasks} 个任务, 预计 ${data.data.total_minutes} 分钟`]);
-          setPlanning(false);
-          ws.close();
-          fetchData(); // 刷新任务列表
-          break;
-        case "error":
-          setPlanLogs((prev) => [...prev, `❌ 错误: ${data.message}`]);
-          setPlanning(false);
-          ws.close();
-          break;
-      }
-    };
-
-    ws.onerror = () => {
-      setPlanLogs((prev) => [...prev, "❌ WebSocket 连接失败，请检查后端服务"]);
-      setPlanning(false);
-    };
-
-    ws.onclose = () => {
-      setPlanning(false);
-      wsRef.current = null;
-    };
+  /** 重试生成 */
+  function retryPlanGeneration() {
+    setPlanError("");
+    startPlanGeneration();
   }
 
   const statusLabels: Record<string, string> = { active: "进行中", completed: "已完成", paused: "已暂停" };
   const statusColors: Record<string, string> = { active: "bg-green-100 text-green-700", completed: "bg-blue-100 text-blue-700", paused: "bg-gray-100 text-gray-600" };
 
-  if (loading) return <div className="flex justify-center py-20 text-gray-400">加载中...</div>;
+  if (loading) return (
+    <div className="max-w-3xl mx-auto">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <Skeleton lines={6} />
+      </div>
+      <Skeleton lines={3} />
+    </div>
+  );
   if (error) return <div className="max-w-3xl mx-auto px-4 py-10 text-center text-red-500">{error}</div>;
   if (!goal) return null;
 
@@ -200,16 +231,17 @@ export default function GoalDetailPage() {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <ErrorBoundary>
+    <div className="max-w-3xl mx-auto">
       {/* 返回 */}
       <button onClick={() => router.push("/goals")} className="text-sm text-gray-400 hover:text-gray-600 mb-4">&larr; 返回目标列表</button>
 
       {/* 目标信息 */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-xl font-bold text-gray-800">{goal.title}</h1>
+              <h1 className="text-base sm:text-xl font-bold text-gray-800">{goal.title}</h1>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[goal.status]}`}>
                 {statusLabels[goal.status]}
               </span>
@@ -228,56 +260,42 @@ export default function GoalDetailPage() {
 
       {/* AI 生成学习计划 */}
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-5 mb-6">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
             <h3 className="text-sm font-semibold text-purple-800">🤖 AI 学习计划生成</h3>
             <p className="text-xs text-purple-600 mt-0.5">
               基于 DeepSeek V4 Pro 自动将目标分解为里程碑和每日任务
             </p>
           </div>
-          <button
-            onClick={startPlanGeneration}
-            disabled={planning}
-            className="px-4 py-2 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {planning ? "⏳ 生成中..." : "✨ 生成计划"}
-          </button>
+          {planPhase === "idle" || planPhase === "error" ? (
+            <button
+              onClick={planPhase === "error" ? retryPlanGeneration : startPlanGeneration}
+              className="px-4 py-2 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              {planPhase === "error" ? "🔄 重试" : "✨ 生成计划"}
+            </button>
+          ) : null}
         </div>
 
-        {/* 进度日志 */}
-        {planLogs.length > 0 && (
-          <div className="bg-white/80 rounded-lg border border-purple-100 p-3 mt-3 max-h-64 overflow-y-auto">
-            {planLogs.map((log, i) => (
-              <p key={i} className={`text-xs font-mono leading-relaxed ${log.startsWith("  ") ? "text-gray-500 ml-4" : log.startsWith("❌") ? "text-red-600" : log.startsWith("🎉") ? "text-green-600 font-semibold" : "text-gray-700"}`}>
-                {log}
-              </p>
-            ))}
-          </div>
-        )}
-
-        {/* 里程碑预览 */}
-        {planMilestones.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {planMilestones.map((m, i) => (
-              <span key={i} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
-                {m.order}. {m.title}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* 完成结果 */}
-        {planResult && (
-          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-700 font-medium">
-              ✅ 已生成 {planResult.total_tasks} 个任务，预计总耗时 {Math.round(planResult.total_minutes / 60 * 10) / 10} 小时
-            </p>
-          </div>
-        )}
+        {/* PlanProgress 可视化进度 */}
+        <PlanProgress
+          phase={planPhase}
+          milestones={planMilestones}
+          taskCount={planTaskCount}
+          thinkingMessage={planThinking}
+          result={planResult}
+          error={planError}
+          onCancel={cancelPlanGeneration}
+          onRetry={retryPlanGeneration}
+          onViewTasks={() => {
+            const taskSection = document.getElementById("task-list-section");
+            if (taskSection) taskSection.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
       </div>
 
       {/* 任务区域 */}
-      <div className="flex items-center justify-between mb-3">
+      <div id="task-list-section" className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h2 className="text-lg font-semibold text-gray-800">📋 任务列表</h2>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -338,7 +356,7 @@ export default function GoalDetailPage() {
 
       {/* 任务列表 */}
       {tasks.length === 0 ? (
-        <div className="text-center py-10 text-gray-400">暂无任务</div>
+        <EmptyState icon="📋" title="暂无任务" description='点击"新建任务"或使用 AI 生成学习计划' />
       ) : (
         <div className="space-y-2">
           {tasks.map((task) => (
@@ -347,5 +365,6 @@ export default function GoalDetailPage() {
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

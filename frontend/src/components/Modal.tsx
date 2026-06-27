@@ -35,7 +35,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 w-[44px] h-[44px] flex items-center justify-center text-xl">&times;</button>
         </div>
         {children}
       </div>

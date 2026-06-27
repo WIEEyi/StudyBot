@@ -21,6 +21,9 @@ import type {
   ReviewResponse,
 } from "@/lib/types";
 import Modal from "@/components/Modal";
+import EmptyState from "@/components/EmptyState";
+import { CardSkeleton } from "@/components/Skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 /** SM-2 评分标签：0=完全忘记 → 5=完美回忆 */
 const RATING_LABELS = [
@@ -204,8 +207,11 @@ export default function ReviewPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-20 text-gray-400">
-        <span className="animate-spin text-3xl mr-3">⏳</span> 加载中...
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">🧠 间隔复习</h1>
+        <div className="space-y-3">
+          <CardSkeleton /><CardSkeleton /><CardSkeleton />
+        </div>
       </div>
     );
   }
@@ -214,7 +220,7 @@ export default function ReviewPage() {
 
   if (reviewingCard) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto">
         {/* 顶部导航 */}
         <div className="flex items-center justify-between mb-6">
           <button onClick={exitReview} className="text-sm text-gray-500 hover:text-gray-700">
@@ -323,11 +329,12 @@ export default function ReviewPage() {
   }).length;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <ErrorBoundary>
+    <div className="max-w-4xl mx-auto">
       {/* 标题栏 */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">🧠 间隔复习</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">🧠 间隔复习</h1>
           <p className="text-sm text-gray-500 mt-1">
             SM-2 算法 · {cards.length} 张卡片 · {dueCount} 张待复习
           </p>
@@ -380,11 +387,13 @@ export default function ReviewPage() {
 
       {/* 卡片列表 */}
       {cards.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">🗂️</p>
-          <p>还没有复习卡片，点击"新建卡片"创建第一张</p>
-          <p className="text-sm mt-1">卡片用于间隔复习，帮助你巩固知识点</p>
-        </div>
+        <EmptyState
+          icon="🗂️"
+          title="还没有复习卡片"
+          description="卡片用于间隔复习，帮助你巩固知识点"
+          actionLabel="新建卡片"
+          onAction={openCreate}
+        />
       ) : (
         <div className="space-y-3">
           {cards.map((card) => {
@@ -482,5 +491,6 @@ export default function ReviewPage() {
         </div>
       </Modal>
     </div>
+    </ErrorBoundary>
   );
 }

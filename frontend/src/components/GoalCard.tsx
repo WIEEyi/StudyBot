@@ -52,13 +52,13 @@ export default function GoalCard({ goal, onClick, onEdit, onDelete }: GoalCardPr
         <div className="flex items-center gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={onEdit}
-            className="px-2 py-1 text-xs text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="px-2 py-1.5 min-h-[36px] text-xs text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
           >
             编辑
           </button>
           <button
             onClick={onDelete}
-            className="px-2 py-1 text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+            className="px-2 py-1.5 min-h-[36px] text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
           >
             删除
           </button>

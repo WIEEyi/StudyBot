@@ -13,6 +13,9 @@ import { isAuthenticated } from "@/lib/auth";
 import type { Goal, GoalCreate, GoalListResponse, GoalStatus } from "@/lib/types";
 import GoalCard from "@/components/GoalCard";
 import Modal from "@/components/Modal";
+import EmptyState from "@/components/EmptyState";
+import { CardSkeleton } from "@/components/Skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function GoalsPage() {
   const router = useRouter();
@@ -100,13 +103,21 @@ export default function GoalsPage() {
     { label: "已暂停", value: "paused" },
   ];
 
-  if (loading) return <div className="flex justify-center py-20 text-gray-400">加载中...</div>;
+  if (loading) return (
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">🎯 学习目标</h1>
+      <div className="space-y-3">
+        <CardSkeleton /><CardSkeleton /><CardSkeleton />
+      </div>
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <ErrorBoundary>
+    <div className="max-w-4xl mx-auto">
       {/* 标题栏 */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">🎯 学习目标</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">🎯 学习目标</h1>
         <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
           + 新建目标
         </button>
@@ -132,10 +143,13 @@ export default function GoalsPage() {
 
       {/* 目标列表 */}
       {goals.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">📋</p>
-          <p>还没有学习目标，点击上方按钮创建第一个</p>
-        </div>
+        <EmptyState
+          icon="📋"
+          title="还没有学习目标"
+          description="点击上方按钮创建第一个学习目标"
+          actionLabel="新建目标"
+          onAction={openCreate}
+        />
       ) : (
         <div className="space-y-3">
           {goals.map((goal) => (
@@ -183,5 +197,6 @@ export default function GoalsPage() {
         </div>
       </Modal>
     </div>
+    </ErrorBoundary>
   );
 }

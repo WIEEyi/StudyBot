@@ -44,7 +44,7 @@ export default function DocumentCard({ document: doc, onDelete }: DocumentCardPr
       </div>
       <button
         onClick={() => onDelete(doc)}
-        className="px-2 py-1 text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+        className="px-2 py-1.5 min-h-[36px] text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
       >
         删除
       </button>
