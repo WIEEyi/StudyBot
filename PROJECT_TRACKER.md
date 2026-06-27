@@ -130,9 +130,9 @@ pyProject/
 ## 当前状态
 
 - **阶段**: Phase 4 ✅
-- **步骤**: Step 25 完成 ✅
+- **步骤**: Step 26 完成 ✅
 - **开始时间**: 2026-05-31
-- **最后更新**: 2026-06-27 (前端响应式完善 + RAG Celery 自动向量化 + DB 迁移修复)
+- **最后更新**: 2026-06-27 (LLM 集成 + 对话历史持久化 + 前端聊天管理)
 
 ---
 
@@ -175,6 +175,7 @@ pyProject/
 | 2026-06-27 | Step 24 | 前端完善: 响应式适配 (10页+Navbar汉堡菜单) + WebSocket PlanProgress 可视化 + EmptyState/Skeleton 组件接入 + ErrorBoundary 页面隔离 ✅ |
 | 2026-06-27 | 修复 | DB 迁移链修复 (broken revision 4c33aef808eb) + study_sessions 表 schema 修复 + 迁移对齐到 heads ✅ |
 | 2026-06-27 | Step 25 | RAG 完善: QA Schema 修复 (CitationItem/QARequest missing fields) + Celery generate_document_embeddings 真实实现 + 文档上传自动触发向量化 ✅ |
+| 2026-06-27 | Step 26 | LLM 集成: QA 接入 DeepSeek RAG 答案生成 + Conversation/ChatMessage ORM + 对话历史 CRUD API + 前端对话管理侧边栏 ✅ |
 
 ### 🔄 进行中
 
@@ -184,7 +185,7 @@ _无_
 
 | 步骤 | 描述 |
 |------|------|
-| Step 26 | LLM 集成: QA 模块接入 DeepSeek 生成答案 + 对话历史持久化 |
+| — | 全部计划步骤已完成。建议下一步：部署/CI 验证 + E2E 测试修复 |
 
 ### 💡 待办改进
 
